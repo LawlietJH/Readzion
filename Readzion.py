@@ -1,7 +1,7 @@
 
 # Python 3
 # Readzion
-# v1.0.7
+# v1.0.8
 
 #=======================================================================
 
@@ -67,10 +67,11 @@ class Notepad:
 		insertbackground='#B5D5F5', selectbackground='#008080')
 	thisMenuBar = Menu(root)
 	thisFileMenu = Menu(thisMenuBar, tearoff=0)
+	thisScrollBar = Scrollbar(thisTextArea)
 	
-	thisScrollBar = Scrollbar(thisTextArea)      
-	_file = None
 	rowsNumber = 1
+	_file = None
+	
 	original_title = 'Sin Nombre'
 	title = original_title
 	script = 'Readzion'
@@ -88,9 +89,13 @@ class Notepad:
 			self.thisHeight = kwargs['height']
 		except KeyError: pass
 		
+		# La ventana por encima de todo:
+		self.root.wm_attributes('-topmost', True)
+		
 		# Titulo de la ventana:
 		self.root.title(self.title + self.unsave + self.script)
 		
+		# Crea Barra de Estado:
 		self.status = self.StatusBar(self.thisTextArea)
 		self.status.pack(side=BOTTOM, fill=X)
 		self.updateRowsNumber()
@@ -99,17 +104,13 @@ class Notepad:
 		screenWidth = self.root.winfo_screenwidth()
 		screenHeight = self.root.winfo_screenheight()
 		
-		# For left-alling
+		# For left-alling, right-allign, top and bottom
 		left = (screenWidth // 2) - (self.thisWidth // 2)
-		
-		# For right-allign
 		top = (screenHeight // 2) - (self.thisHeight //2)
-		
-		# For top and bottom
 		self.root.geometry('{}x{}+{}+{}'.format(self.thisWidth,
 										self.thisHeight, left, top))
 		
-		# To make the textarea auto resizable
+		# Para hacer el TextArea auto resizable
 		self.root.grid_rowconfigure(0, weight=1)
 		self.root.grid_columnconfigure(0, weight=1)
 		
@@ -126,32 +127,40 @@ class Notepad:
 		
 		self.root.config(menu=self.thisMenuBar)
 		self.thisScrollBar.pack(side=RIGHT, fill=Y)
-		# Scrollbar will adjust automatically according to the content
+		
+		# Scrollbar se ajustara automaticamente acorde al contenido
 		self.thisScrollBar.config(command=self.thisTextArea.yview)
 		self.thisTextArea.config(yscrollcommand=self.thisScrollBar.set)
 		
-		
-		self.menu = Menu(self.root, tearoff=0)
-		
-		self.root.wm_attributes('-topmost', True)
-		
+		# Otros Eventos:
 		self.root.bind('<Button-3>', self.popup)
 		self.root.protocol('WM_DELETE_WINDOW', self.exit)
-		self.thisTextArea.bind('<Escape>', self.exit)
+		self.thisTextArea.bind('<Button-1>', self.updateRowsNumber)
+		self.thisTextArea.bind('<Motion>', self.updateRowsNumber)
+		
+		# Eventos del teclado:
+		self.root.bind('<Escape>', self.exit)
+		
 		self.thisTextArea.bind('<Control-n>', self.newFile)
 		self.thisTextArea.bind('<Control-N>', self.newFile)
+		
 		self.thisTextArea.bind('<Control-g>', self.saveFile)
+		self.thisTextArea.bind('<Control-s>', self.saveFile)
 		self.thisTextArea.bind('<Control-G>', self.saveFile)
+		self.thisTextArea.bind('<Control-S>', self.saveFile)
+		
+		self.thisTextArea.bind('<Control-a>', self.openFile)
 		self.thisTextArea.bind('<Control-o>', self.openFile)
+		self.thisTextArea.bind('<Control-A>', self.openFile)
 		self.thisTextArea.bind('<Control-O>', self.openFile)
-		self.thisTextArea.bind('<Button-1>', self.updateRowsNumber())
-		self.thisTextArea.bind('<Button-3>', self.updateRowsNumber())
-		self.thisTextArea.bind('<Motion>', self.updateRowsNumber)
+		
 		self.thisTextArea.bind('<Key>', self.chkStatusFile)
 		
 		# ~ self.button = Button(root, text="Destroy", command=root.destroy)
 		# ~ self.button.pack()
 		
+		# Menu PopUp
+		self.menu = Menu(self.root, tearoff=0)
 		self.menu.focus()
 		self.menu.add_cascade(label='Nuevo', command=self.newFile)
 		self.menu.add_cascade(label='Abrir', command=self.openFile)
@@ -163,9 +172,8 @@ class Notepad:
 	def newFile(self, event=''):
 		self.root.title(self.original_title + self.unsave + self.script)
 		self.thisTextArea.delete(1.0, END)
+		self.updateRowsNumber()
 		self._file = None
-		self.lineNumber = self.thisTextArea.index('end-1c').split('.')[0]
-		self.status.set('Lineas: '+str(self.lineNumber))
 	
 	def openFile(self, event=''):
 		
