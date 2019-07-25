@@ -1,7 +1,7 @@
 
 # Python 3
 # Readzion
-# v1.0.6
+# v1.0.7
 
 #=======================================================================
 
@@ -18,7 +18,7 @@ def Hide(xD=True):
 		win32gui.ShowWindow(window,1)
 		return False
 
-# ~ Hide()
+Hide()
 
 #=======================================================================
 
@@ -27,13 +27,15 @@ def Hide(xD=True):
 
 from tkinter import *
 # ~ from tkinter.messagebox import *
-# ~ from tkinter.filedialog import *
 from explorer import Explorer as ex
 import base64
 import os
 
 
+#encode = lambda data: base64.urlsafe_b64encode(data.encode())
+#decode = lambda data: base64.urlsafe_b64decode(data).decode()
 
+cmd = lambda comando: os.popen(comando).read()
 exists = lambda file_name: os.path.exists(file_name)
 encode = lambda data: base64.urlsafe_b64encode(data)
 decode = lambda data: base64.urlsafe_b64decode(data)
@@ -134,7 +136,8 @@ class Notepad:
 		self.root.wm_attributes('-topmost', True)
 		
 		self.root.bind('<Button-3>', self.popup)
-		# ~ self.thisTextArea.bind('<Key>', self.changeLineNumber)
+		self.root.protocol('WM_DELETE_WINDOW', self.exit)
+		self.thisTextArea.bind('<Escape>', self.exit)
 		self.thisTextArea.bind('<Control-n>', self.newFile)
 		self.thisTextArea.bind('<Control-N>', self.newFile)
 		self.thisTextArea.bind('<Control-g>', self.saveFile)
@@ -145,7 +148,9 @@ class Notepad:
 		self.thisTextArea.bind('<Button-3>', self.updateRowsNumber())
 		self.thisTextArea.bind('<Motion>', self.updateRowsNumber)
 		self.thisTextArea.bind('<Key>', self.chkStatusFile)
-		self.thisTextArea.bind('<Escape>', self.exit)
+		
+		# ~ self.button = Button(root, text="Destroy", command=root.destroy)
+		# ~ self.button.pack()
 		
 		self.menu.focus()
 		self.menu.add_cascade(label='Nuevo', command=self.newFile)
@@ -260,40 +265,12 @@ class Notepad:
 	
 	def run(self):
 		# Corre el programa:
+		cmd('mode con cols=30 lines=5')
 		self.root.mainloop()
-
-
-# ~ def openFileToRead():
-	
-	# ~ f_name = ex.getFileName(title='Abrir Archvio Tipo ZioN',
-							# ~ file_types=[['Archivos ZioN','*.zion']])
-	
-	# ~ with open(f_name, 'rb') as f:
-		# ~ text = f.read()
-		# ~ text = decode(text)
-		# ~ f.close()
-	
-	# ~ return text.decode(), f_name
-
-# ~ def openFileToSave(text):
-	
-	# ~ f_name_s = ex.getFileNameSave(title='Guardar Archvio Tipo ZioN',
-								# ~ file_types=[['Archivos ZioN','*.zion']])
-	
-	# ~ with open(f_name_s, 'wb') as f:
-		# ~ text = encode(text)
-		# ~ f.write(text)
-		# ~ f.close()
-	
-	# ~ return f_name_s
 
 
 
 if __name__ == '__main__':
-	
-	# ~ text, f_name = openFileToRead()
-	# ~ print('\n\n\t Contenido del Archivo {}:\n\n{}'.format(f_name, text))
-	# ~ openFileToSave(text.encode())
 	
 	# Inicializa:
 	notepad = Notepad(width=720,height=480)
