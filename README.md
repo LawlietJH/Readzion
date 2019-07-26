@@ -1,4 +1,4 @@
-# Readzion v1.0.8
+# Readzion v1.1.3
  __Notepad especializado en lectura y escritura cifrada de archivos con extensión .ZION__
 ## By: LawlietJH
 ## Python 3
