@@ -1,12 +1,12 @@
 
 # By: LawlietJH
-# Readzion v1.1.1
+# Readzion v1.1.3
 # Python 3
 
 #=======================================================================
 
 __author__ ='LawlietJH'
-__version__='v1.1.2'
+__version__='v1.1.3'
 
 debbuger = False
 
@@ -81,6 +81,7 @@ class Notepad:
 	
 	eliminar_state = 'disabled'
 	vaciar_state = 'disabled'
+	encima_state = True
 	rowsNumber = 1
 	_file = None
 	c_csf = 0
@@ -152,8 +153,9 @@ class Notepad:
 		self.thisFileMenu.add_command(label='Cerrar', underline=0, accelerator='Esc', command=self.exit)
 		self.thisMenuBar.add_cascade(label='Archivo', underline=0, accelerator='Alt+A', menu=self.thisFileMenu)
 		
-		self.thisEnableMenu.add_command(label='Eliminar', underline=0, command=self.habilitarEliminar)
-		self.thisEnableMenu.add_command(label='Vaciar', underline=0, command=self.habilitarVaciar)
+		self.thisEnableMenu.add_command(label='Siempre Encima', underline=0, accelerator='Activo', command=self.encimar)
+		self.thisEnableMenu.add_command(label='Eliminar', underline=0, accelerator='Inactivo', command=self.habilitarEliminar)
+		self.thisEnableMenu.add_command(label='Vaciar', underline=0, accelerator='Inactivo', command=self.habilitarVaciar)
 		self.thisMenuBar.add_cascade(label='Habilitar', underline=0, accelerator='Alt+H', menu=self.thisEnableMenu)
 		
 		self.root.config(menu=self.thisMenuBar)
@@ -213,6 +215,16 @@ class Notepad:
 		
 		# ~ self.root.after(10000, lambda: self.chkStatusFile())
 	
+	def encimar(self, event=''):
+		
+		if self.encima_state == True:
+			self.encima_state = False
+		else:
+			self.encima_state = True
+		
+		self.root.wm_attributes('-topmost', self.encima_state)
+		self.thisEnableMenu.entryconfigure(index='Siempre Encima', accelerator='Activo' if self.encima_state else 'Inactivo')
+	
 	def habilitarEliminar(self, event=''):
 		
 		if self.eliminar_state=='normal':
@@ -221,6 +233,8 @@ class Notepad:
 			self.eliminar_state='normal'
 		
 		self.menu.entryconfig(index='Eliminar Archivo', state=self.eliminar_state)
+		self.thisEnableMenu.entryconfig(index='Eliminar',
+			accelerator='Activo' if self.eliminar_state == 'normal' else 'Inactivo')
 		self.thisFileMenu.entryconfig(index='Eliminar Archivo', state=self.eliminar_state)
 	
 	def habilitarVaciar(self, event=''):
@@ -231,6 +245,8 @@ class Notepad:
 			self.vaciar_state='active'
 		
 		self.menu.entryconfig(index='Vaciar Archivo', state=self.vaciar_state)
+		self.thisEnableMenu.entryconfig(index='Vaciar',
+			accelerator='Activo' if self.vaciar_state == 'active' else 'Inactivo')
 		self.thisFileMenu.entryconfig(index='Vaciar Archivo', state=self.vaciar_state)
 	
 	
