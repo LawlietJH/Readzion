@@ -1,12 +1,12 @@
 
 # By: LawlietJH
-# Readzion v1.0.9
+# Readzion v1.1.1
 # Python 3
 
 #=======================================================================
 
 __author__ ='LawlietJH'
-__version__='v1.0.9'
+__version__='v1.1.1'
 
 debbuger = False
 
@@ -45,7 +45,7 @@ cmd = lambda comando: os.popen(comando).read()
 exists = lambda file_name: os.path.exists(file_name)
 encode = lambda data: base64.urlsafe_b64encode(data)
 decode = lambda data: base64.urlsafe_b64decode(data)
-
+del_file = lambda name: os.remove(name)
 
 
 class Notepad: 
@@ -56,7 +56,7 @@ class Notepad:
 			Frame.__init__(self, master)
 			self.label = Label(self, bg='#002030', fg='#EBEBEB',
 								bd=1, relief=SUNKEN, anchor=E,
-								justify=RIGHT, font=('Times', '12', 'bold'))
+								justify=RIGHT, font=('Arial', '10', 'bold'))
 			self.label.pack(fill=X)
 
 		def set(self, format, *args):
@@ -75,9 +75,11 @@ class Notepad:
 		insertbackground='#B5D5F5', selectbackground='#008080')
 	thisMenuBar = Menu(root)
 	thisFileMenu = Menu(thisMenuBar, tearoff=0)
+	thisEnableMenu = Menu(thisMenuBar, tearoff=0)
 	thisScrollBar = Scrollbar(thisTextArea)
 	
-	rows = StringVar()
+	eliminar_state = 'disabled'
+	vaciar_state = 'disabled'
 	rowsNumber = 1
 	_file = None
 	c_csf = 0
@@ -131,20 +133,44 @@ class Notepad:
 		# Add controls (widget)
 		self.thisTextArea.grid(sticky = N + E + S + W)
 		
-		# Barra de Menu:
-		self.thisFileMenu.add_command(label='Nuevo', command=self.newFile)
-		self.thisFileMenu.add_command(label='Abrir', command=self.openFile)
-		self.thisFileMenu.add_command(label='Guardar', command=self.saveFile)
-		self.thisFileMenu.add_separator()
-		self.thisFileMenu.add_command(label='Cerrar', command=self.exit)
-		self.thisMenuBar.add_cascade(label="Archivo", menu=self.thisFileMenu)
-		
-		self.root.config(menu=self.thisMenuBar)
 		self.thisScrollBar.pack(side=RIGHT, fill=Y)
 		
 		# Scrollbar se ajustara automaticamente acorde al contenido
 		self.thisScrollBar.config(command=self.thisTextArea.yview)
 		self.thisTextArea.config(yscrollcommand=self.thisScrollBar.set)
+		
+		# Barra de Menu:
+		self.thisFileMenu.add_command(label='Nuevo', underline=0, accelerator='Ctrl+N', command=self.newFile)
+		self.thisFileMenu.add_command(label='Abrir', underline=0, accelerator='Ctrl+A', command=self.openFile)
+		self.thisFileMenu.add_command(label='Guardar', underline=0, accelerator='Ctrl+G', command=self.saveFile)
+		self.thisFileMenu.add_command(label='Guardar Como', underline=1, accelerator='Ctrl+U', command=self.saveFileAs)
+		self.thisFileMenu.add_separator()
+		self.thisFileMenu.add_cascade(label='Eliminar Archivo', underline=1, state='disabled', command=self.delFile)
+		self.thisFileMenu.add_cascade(label='Vaciar Archivo', underline=0, state='disabled', command=self.cleanFile)
+		self.thisFileMenu.add_separator()
+		self.thisFileMenu.add_command(label='Cerrar', underline=0, accelerator='Esc', command=self.exit)
+		self.thisMenuBar.add_cascade(label='Archivo', underline=0, accelerator='Alt+A', menu=self.thisFileMenu)
+		
+		self.thisEnableMenu.add_command(label='Eliminar', underline=0, command=self.habilitarEliminar)
+		self.thisEnableMenu.add_command(label='Vaciar', underline=0, command=self.habilitarVaciar)
+		self.thisMenuBar.add_cascade(label='Habilitar', underline=0, accelerator='Alt+H', menu=self.thisEnableMenu)
+		
+		self.root.config(menu=self.thisMenuBar)
+		
+		
+		# Menu PopUp
+		self.menu = Menu(self.root, tearoff=0)
+		self.menu.focus()
+		self.menu.add_cascade(label='Nuevo', command=self.newFile)
+		self.menu.add_cascade(label='Abrir', command=self.openFile)
+		self.menu.add_cascade(label='Guardar', command=self.saveFile)
+		self.menu.add_cascade(label='Guardar Como', command=self.saveFileAs)
+		self.menu.add_separator()
+		self.menu.add_cascade(label='Eliminar Archivo', state='disabled', command=self.delFile)
+		self.menu.add_cascade(label='Vaciar Archivo', state='disabled', command=self.cleanFile)
+		self.menu.add_separator()
+		self.menu.add_cascade(label='Cerrar', command=self.exit)
+		
 		
 		# Otros Eventos:
 		self.root.bind('<Button-3>', self.popup)
@@ -155,18 +181,24 @@ class Notepad:
 		# Eventos del teclado:
 		self.root.bind('<Escape>', self.exit)
 		
+		self.thisTextArea.bind('<Control-x>', self.cut_paste)
+		self.thisTextArea.bind('<Control-v>', self.cut_paste)
+		self.thisTextArea.bind('<Control-X>', self.cut_paste)
+		self.thisTextArea.bind('<Control-V>', self.cut_paste)
+		
 		self.thisTextArea.bind('<Control-n>', self.newFile)
 		self.thisTextArea.bind('<Control-N>', self.newFile)
+		
+		self.thisTextArea.bind('<Control-o>', self.openFile)
+		self.thisTextArea.bind('<Control-O>', self.openFile)
 		
 		self.thisTextArea.bind('<Control-g>', self.saveFile)
 		self.thisTextArea.bind('<Control-s>', self.saveFile)
 		self.thisTextArea.bind('<Control-G>', self.saveFile)
 		self.thisTextArea.bind('<Control-S>', self.saveFile)
 		
-		self.thisTextArea.bind('<Control-a>', self.openFile)
-		self.thisTextArea.bind('<Control-o>', self.openFile)
-		self.thisTextArea.bind('<Control-A>', self.openFile)
-		self.thisTextArea.bind('<Control-O>', self.openFile)
+		self.thisTextArea.bind('<Control-u>', self.saveFileAs)
+		self.thisTextArea.bind('<Control-U>', self.saveFileAs)
 		
 		self.thisTextArea.bind('<Return>', self.intro_pressed)
 		self.thisTextArea.bind('<BackSpace>', self.backspace_pressed)
@@ -175,34 +207,45 @@ class Notepad:
 		# ~ self.thisTextArea.bind('<Enter>', self.)
 		# ~ self.thisTextArea.bind('<Leave>', self.)
 		
-		# ~ self.button = Button(root, text="Destroy", command=root.destroy)
+		# ~ self.button = Button(root, text='Destroy', command=root.destroy)
 		# ~ self.button.pack()
 		
-		# Menu PopUp
-		self.menu = Menu(self.root, tearoff=0)
-		self.menu.focus()
-		self.menu.add_cascade(label='Nuevo', command=self.newFile)
-		self.menu.add_cascade(label='Abrir', command=self.openFile)
-		self.menu.add_cascade(label='Guardar', command=self.saveFile)
-		self.menu.add_separator()
-		self.menu.add_cascade(label='Cerrar', command=self.exit)
-		
 		# ~ self.root.after(10000, lambda: self.chkStatusFile())
+	
+	def habilitarEliminar(self, event=''):
 		
+		if self.eliminar_state=='normal':
+			self.eliminar_state='disabled'
+		else:
+			self.eliminar_state='normal'
 		
+		self.menu.entryconfig(index='Eliminar Archivo', state=self.eliminar_state)
+		self.thisFileMenu.entryconfig(index='Eliminar Archivo', state=self.eliminar_state)
+	
+	def habilitarVaciar(self, event=''):
+		
+		if self.vaciar_state=='active':
+			self.vaciar_state='disabled'
+		else:
+			self.vaciar_state='active'
+		
+		self.menu.entryconfig(index='Vaciar Archivo', state=self.vaciar_state)
+		self.thisFileMenu.entryconfig(index='Vaciar Archivo', state=self.vaciar_state)
+	
 	def newFile(self, event=''):
 		self.root.title(self.original_title + self.unsave + self.script)
 		self.b_unsave = True
 		self.thisTextArea.delete(1.0, END)
 		self.updateRowsNumber()
 		self._file = None
+		self.guardado = ''
 	
 	def openFile(self, event=''):
 		
 		text = ''
 		self.root.wm_attributes('-topmost', False)
 		
-		f_name = ex.getFileName(title='Abrir Archvio Tipo ZioN',
+		f_name = ex.getFileName(title='Abrir Archivo Tipo ZioN',
 								file_types=[['Archivos ZioN','*.zion']])
 		
 		if f_name:
@@ -244,7 +287,7 @@ class Notepad:
 			self.guardado = self.thisTextArea.get(1.0,END)
 		else:
 			
-			f_name_s = ex.getFileNameSave(title='Guardar Archvio Tipo ZioN',
+			f_name_s = ex.getFileNameSave(title='Guardar Archivo Tipo ZioN',
 									file_types=[['Archivos ZioN','*.zion']])
 			if f_name_s:
 				
@@ -255,9 +298,9 @@ class Notepad:
 					
 					f_name_s += '.zion'
 					if os.path.exists(f_name_s):
-						resp = askyesno('Confirmar Guradar como',
+						resp = askyesno('Confirmar Guardado',
 											os.path.basename(f_name_s)+\
-											' ya existe.\n¿Desea reemplazarlo?')
+											' ya existe.\n¿Desea Reemplazarlo?')
 						if resp == False:
 							return
 				
@@ -278,20 +321,98 @@ class Notepad:
 		self.root.wm_attributes('-topmost', True)
 		self.updateRowsNumber()
 	
+	def saveFileAs(self, event=''):
+		self.root.wm_attributes('-topmost', False)
+		f_name_s = ex.getFileNameSave(title='Guardar Como Archivo Tipo ZioN',
+								file_types=[['Archivos ZioN','*.zion']])
+		if f_name_s:
+			
+			if not f_name_s.endswith('.zion'):
+				if f_name_s.endswith('.')   or f_name_s.endswith('.z')\
+				or f_name_s.endswith('.zi') or f_name_s.endswith('.zio'):
+					f_name_s = '.'.join(f_name_s.split('.')[:-1])
+				
+				f_name_s += '.zion'
+				if os.path.exists(f_name_s):
+					resp = askyesno('Confirmar Guardar Como',
+										os.path.basename(f_name_s)+\
+										' ya existe.\n¿Desea Reemplazarlo?')
+					if resp == False:
+						return
+			
+			self._file = f_name_s
+			
+			with open(self._file, 'wb') as f:
+				text = encode(self.thisTextArea.get(1.0,END).encode())
+				f.write(text)
+				f.close()
+			
+			self.title = os.path.basename(self._file)
+			self.root.title(self.title + self.save + self.script)
+			self.b_unsave = False
+			self.guardado = self.thisTextArea.get(1.0,END)
+		
+		self.root.wm_attributes('-topmost', True)
+		self.updateRowsNumber()
+	
+	def delFile(self, event=''):
+		
+		if self._file:
+			self.root.wm_attributes('-topmost', False)
+			
+			resp = askyesno('Confirmar Eliminar Archivo',
+				' Esta seguro de Eliminar el Archivo '+os.path.basename(self._file))
+			
+			if resp:
+				del_file(self._file)
+				self.newFile()
+				self.habilitarEliminar()
+			
+			self.root.wm_attributes('-topmost', True)
+	
+	def cleanFile(self, event=''):
+		
+		if self._file:
+			
+			self.root.wm_attributes('-topmost', False)
+			
+			resp = askyesno('Confirmar Vaciar Archivo',
+				' Esta seguro de Vaciar el Archivo '+os.path.basename(self._file))
+			
+			if resp:
+				self.thisTextArea.delete(1.0, END)
+				self.saveFile()
+				self.habilitarVaciar()
+			
+			self.root.wm_attributes('-topmost', True)
+	
 	# ~ def track_change_to_text(self, event):
-		# ~ self.thisTextArea.tag_add("here", "1.0", "1.8")
-		# ~ self.thisTextArea.tag_config("here", background="black", foreground="green")
+		# ~ self.thisTextArea.tag_add('here', '1.0', '1.8')
+		# ~ self.thisTextArea.tag_config('here', background='black', foreground='green')
+	
+	def cut_paste(self, event=''):
+		if self.c_bs == 0:
+			self.root.after(100, self.cut_paste)
+			self.c_bs += 1
+		else:
+			self.c_bs = 0
+		self.chkStatusFile()
+		self.updateRowsNumber()
+	
+	def updateStatusBar(self):
+		self.status.set('Filas: {:<6}'.format(self.rowsNumber))
+	
 	def intro_pressed(self, event):
 		self.chkStatusFile()
 		self.rowsNumber = self.thisTextArea.index('end').split('.')[0]
-		self.status.set('Filas: '+self.rowsNumber)
+		self.updateStatusBar()
 	
 	def backspace_pressed(self, event=''):
 		self.chkStatusFile()
 		val = self.thisTextArea.get(1.0,END).count('\n')
 		# ~ cur = self.thisTextArea.index(INSERT)
 		self.rowsNumber = str(val)
-		self.status.set('Filas: '+self.rowsNumber)
+		self.updateStatusBar()
 		
 		if self.c_bs == 0:
 			self.root.after(100, self.backspace_pressed)
@@ -316,8 +437,7 @@ class Notepad:
 	
 	def updateRowsNumber(self, event=''):
 		self.rowsNumber = self.thisTextArea.index('end-1c').split('.')[0]
-		self.status.set('Filas: '+self.rowsNumber)
-		# ~ self.chkStatusFile()
+		self.updateStatusBar()
 	
 	def popup(self, event):
 		self.menu.post(event.x_root, event.y_root)
