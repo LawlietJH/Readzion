@@ -1,9 +1,14 @@
 
+# By: LawlietJH
+# Readzion v1.0.9
 # Python 3
-# Readzion
-# v1.0.8
 
 #=======================================================================
+
+__author__ ='LawlietJH'
+__version__='v1.0.9'
+
+debbuger = False
 
 #Hide Console
 def Hide(xD=True):
@@ -18,7 +23,8 @@ def Hide(xD=True):
 		win32gui.ShowWindow(window,1)
 		return False
 
-Hide()
+if not debbuger:
+	Hide()
 
 #=======================================================================
 
@@ -26,7 +32,7 @@ Hide()
 # ~ except: import Tkinter as tk
 
 from tkinter import *
-# ~ from tkinter.messagebox import *
+from tkinter.messagebox import *
 from explorer import Explorer as ex
 import base64
 import os
@@ -48,7 +54,9 @@ class Notepad:
 
 		def __init__(self, master):
 			Frame.__init__(self, master)
-			self.label = Label(self, bd=1, relief=SUNKEN, anchor=W)
+			self.label = Label(self, bg='#002030', fg='#EBEBEB',
+								bd=1, relief=SUNKEN, anchor=E,
+								justify=RIGHT, font=('Times', '12', 'bold'))
 			self.label.pack(fill=X)
 
 		def set(self, format, *args):
@@ -63,20 +71,25 @@ class Notepad:
 	thisWidth = 600
 	thisHeight = 400
 	# Pagina de colores: https://mycolor.space/?hex=%23002045&sub=1
-	thisTextArea = Text(root, bg='#002045', fg='#EBEBFF', bd=2,
+	thisTextArea = Text(root, bg='#002045', fg='#EBEBFF', bd=1,
 		insertbackground='#B5D5F5', selectbackground='#008080')
 	thisMenuBar = Menu(root)
 	thisFileMenu = Menu(thisMenuBar, tearoff=0)
 	thisScrollBar = Scrollbar(thisTextArea)
 	
+	rows = StringVar()
 	rowsNumber = 1
 	_file = None
+	c_csf = 0
+	c_bs = 0
 	
 	original_title = 'Sin Nombre'
 	title = original_title
 	script = 'Readzion'
 	unsave = '* (Sin Guardar) - '
 	save = ' - '
+	b_unsave = True
+	guardado = ''
 	
 	def __init__(self, **kwargs):
 		
@@ -94,6 +107,7 @@ class Notepad:
 		
 		# Titulo de la ventana:
 		self.root.title(self.title + self.unsave + self.script)
+		self.b_unsave = True
 		
 		# Crea Barra de Estado:
 		self.status = self.StatusBar(self.thisTextArea)
@@ -135,8 +149,8 @@ class Notepad:
 		# Otros Eventos:
 		self.root.bind('<Button-3>', self.popup)
 		self.root.protocol('WM_DELETE_WINDOW', self.exit)
-		self.thisTextArea.bind('<Button-1>', self.updateRowsNumber)
-		self.thisTextArea.bind('<Motion>', self.updateRowsNumber)
+		# ~ self.thisTextArea.bind('<Button-1>', self.updateRowsNumber)
+		# ~ self.thisTextArea.bind('<Motion>', self.updateRowsNumber)
 		
 		# Eventos del teclado:
 		self.root.bind('<Escape>', self.exit)
@@ -154,7 +168,12 @@ class Notepad:
 		self.thisTextArea.bind('<Control-A>', self.openFile)
 		self.thisTextArea.bind('<Control-O>', self.openFile)
 		
+		self.thisTextArea.bind('<Return>', self.intro_pressed)
+		self.thisTextArea.bind('<BackSpace>', self.backspace_pressed)
+		
 		self.thisTextArea.bind('<Key>', self.chkStatusFile)
+		# ~ self.thisTextArea.bind('<Enter>', self.)
+		# ~ self.thisTextArea.bind('<Leave>', self.)
 		
 		# ~ self.button = Button(root, text="Destroy", command=root.destroy)
 		# ~ self.button.pack()
@@ -168,9 +187,12 @@ class Notepad:
 		self.menu.add_separator()
 		self.menu.add_cascade(label='Cerrar', command=self.exit)
 		
+		# ~ self.root.after(10000, lambda: self.chkStatusFile())
+		
 		
 	def newFile(self, event=''):
 		self.root.title(self.original_title + self.unsave + self.script)
+		self.b_unsave = True
 		self.thisTextArea.delete(1.0, END)
 		self.updateRowsNumber()
 		self._file = None
@@ -187,6 +209,7 @@ class Notepad:
 			self._file = f_name
 			self.title = os.path.basename(self._file)
 			self.root.title(self.title + self.save + self.script)
+			self.b_unsave = False
 			self.thisTextArea.delete(1.0, END)
 			
 			with open(self._file, 'rb') as f:
@@ -198,6 +221,7 @@ class Notepad:
 				f.close()
 			
 			self.thisTextArea.insert(1.0, text)
+			self.guardado = self.thisTextArea.get(1.0,END)
 		else:
 			self._file = None
 		
@@ -216,7 +240,8 @@ class Notepad:
 				f.close()
 			
 			self.root.title(self.title + self.save + self.script)
-			
+			self.b_unsave = False
+			self.guardado = self.thisTextArea.get(1.0,END)
 		else:
 			
 			f_name_s = ex.getFileNameSave(title='Guardar Archvio Tipo ZioN',
@@ -245,6 +270,8 @@ class Notepad:
 				
 				self.title = os.path.basename(self._file)
 				self.root.title(self.title + self.save + self.script)
+				self.b_unsave = False
+				self.guardado = self.thisTextArea.get(1.0,END)
 			else:
 				self._file = None
 		
@@ -254,26 +281,65 @@ class Notepad:
 	# ~ def track_change_to_text(self, event):
 		# ~ self.thisTextArea.tag_add("here", "1.0", "1.8")
 		# ~ self.thisTextArea.tag_config("here", background="black", foreground="green")
+	def intro_pressed(self, event):
+		self.chkStatusFile()
+		self.rowsNumber = self.thisTextArea.index('end').split('.')[0]
+		self.status.set('Filas: '+self.rowsNumber)
+	
+	def backspace_pressed(self, event=''):
+		self.chkStatusFile()
+		val = self.thisTextArea.get(1.0,END).count('\n')
+		# ~ cur = self.thisTextArea.index(INSERT)
+		self.rowsNumber = str(val)
+		self.status.set('Filas: '+self.rowsNumber)
+		
+		if self.c_bs == 0:
+			self.root.after(100, self.backspace_pressed)
+			self.c_bs += 1
+		else:
+			self.c_bs = 0
 	
 	def chkStatusFile(self, event=''):
-		self.updateRowsNumber()
-		self.root.title(self.title + self.unsave + self.script)
+		actual = self.thisTextArea.get(1.0,END)
+		if not actual == self.guardado:
+			self.root.title(self.title + self.unsave + self.script)
+			self.b_unsave = True
+		else:
+			self.root.title(self.title + self.save + self.script)
+			self.b_unsave = False
+		
+		if self.c_csf == 0:
+			self.root.after(100, self.chkStatusFile)
+			self.c_csf += 1
+		else:
+			self.c_csf = 0
 	
 	def updateRowsNumber(self, event=''):
 		self.rowsNumber = self.thisTextArea.index('end-1c').split('.')[0]
-		self.status.set('Filas: '+str(self.rowsNumber))
+		self.status.set('Filas: '+self.rowsNumber)
+		# ~ self.chkStatusFile()
 	
 	def popup(self, event):
 		self.menu.post(event.x_root, event.y_root)
 	
 	def exit(self, event=''):
-		self.root.destroy()
-		Hide(False)
-		sys.exit()
+		self.root.wm_attributes('-topmost', False)
+		if self.b_unsave == True:
+			if askokcancel('Cerrar', 'Desea Salir Sin Guardar?'):
+				self.root.destroy()
+				Hide(False)
+				sys.exit()
+			else:
+				self.root.wm_attributes('-topmost', True)
+		else:
+			self.root.destroy()
+			Hide(False)
+			sys.exit()
 	
 	def run(self):
 		# Corre el programa:
-		cmd('mode con cols=30 lines=5')
+		if not debbuger:
+			cmd('mode con cols=30 lines=5')
 		self.root.mainloop()
 
 
@@ -286,5 +352,4 @@ if __name__ == '__main__':
 	notepad.run()
 	print(True)
 	
-
 
