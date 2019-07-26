@@ -6,7 +6,7 @@
 #=======================================================================
 
 __author__ ='LawlietJH'
-__version__='v1.1.1'
+__version__='v1.1.2'
 
 debbuger = False
 
@@ -46,6 +46,7 @@ exists = lambda file_name: os.path.exists(file_name)
 encode = lambda data: base64.urlsafe_b64encode(data)
 decode = lambda data: base64.urlsafe_b64decode(data)
 del_file = lambda name: os.remove(name)
+file_exists = lambda name: os.path.exists(name)
 
 
 class Notepad: 
@@ -232,13 +233,36 @@ class Notepad:
 		self.menu.entryconfig(index='Vaciar Archivo', state=self.vaciar_state)
 		self.thisFileMenu.entryconfig(index='Vaciar Archivo', state=self.vaciar_state)
 	
+	
 	def newFile(self, event=''):
-		self.root.title(self.original_title + self.unsave + self.script)
-		self.b_unsave = True
-		self.thisTextArea.delete(1.0, END)
-		self.updateRowsNumber()
-		self._file = None
-		self.guardado = ''
+		if self.b_unsave:
+			if self._file:
+				
+				self.root.wm_attributes('-topmost', False)
+				
+				resp = askyesno('Confirmar Guardar Cambios',
+					'Desea Guardar los Cambios en el Archivo '+\
+					os.path.basename(self._file))
+				
+				if resp:
+					self.saveFile()
+				
+				self.root.title(self.original_title + self.unsave + self.script)
+				self.b_unsave = True
+				self.thisTextArea.delete(1.0, END)
+				self.updateRowsNumber()
+				self._file = None
+				self.guardado = ''
+				
+				self.root.wm_attributes('-topmost', True)
+			
+		else:
+			self.root.title(self.original_title + self.unsave + self.script)
+			self.b_unsave = True
+			self.thisTextArea.delete(1.0, END)
+			self.updateRowsNumber()
+			self._file = None
+			self.guardado = ''
 	
 	def openFile(self, event=''):
 		
@@ -421,13 +445,18 @@ class Notepad:
 			self.c_bs = 0
 	
 	def chkStatusFile(self, event=''):
-		actual = self.thisTextArea.get(1.0,END)
-		if not actual == self.guardado:
+		
+		if self._file and not file_exists(self._file):
 			self.root.title(self.title + self.unsave + self.script)
 			self.b_unsave = True
 		else:
-			self.root.title(self.title + self.save + self.script)
-			self.b_unsave = False
+			actual = self.thisTextArea.get(1.0,END)
+			if not actual == self.guardado:
+				self.root.title(self.title + self.unsave + self.script)
+				self.b_unsave = True
+			else:
+				self.root.title(self.title + self.save + self.script)
+				self.b_unsave = False
 		
 		if self.c_csf == 0:
 			self.root.after(100, self.chkStatusFile)
@@ -436,6 +465,7 @@ class Notepad:
 			self.c_csf = 0
 	
 	def updateRowsNumber(self, event=''):
+		self.chkStatusFile()
 		self.rowsNumber = self.thisTextArea.index('end-1c').split('.')[0]
 		self.updateStatusBar()
 	
