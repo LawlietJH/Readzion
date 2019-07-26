@@ -1,12 +1,12 @@
 
 # By: LawlietJH
-# Readzion v1.1.3
+# Readzion v1.1.4
 # Python 3
 
 #=======================================================================
 
 __author__ ='LawlietJH'
-__version__='v1.1.3'
+__version__='v1.1.4'
 
 debbuger = False
 
@@ -71,13 +71,19 @@ class Notepad:
 	root = Tk()
 	thisWidth = 600
 	thisHeight = 400
+	
 	# Pagina de colores: https://mycolor.space/?hex=%23002045&sub=1
 	thisTextArea = Text(root, bg='#002045', fg='#EBEBFF', bd=1,
 		insertbackground='#B5D5F5', selectbackground='#008080')
+	thisScrollBar = Scrollbar(thisTextArea)
+	
 	thisMenuBar = Menu(root)
 	thisFileMenu = Menu(thisMenuBar, tearoff=0)
 	thisEnableMenu = Menu(thisMenuBar, tearoff=0)
-	thisScrollBar = Scrollbar(thisTextArea)
+	thisCipherMenu = Menu(thisMenuBar, tearoff=0)
+	
+	popUp = Menu(root, tearoff=0)
+	popUpF = Menu(popUp, tearoff=0)
 	
 	eliminar_state = 'disabled'
 	vaciar_state = 'disabled'
@@ -87,9 +93,16 @@ class Notepad:
 	c_csf = 0
 	c_bs = 0
 	
+	cur_c_pos = '1.0'	# Current cursor position in the text 'line.column'
+	cur_c_char = '\n'	# Current cursor position char in the text 'a'
+	cur_s_text = ''		# Current selection text in text 'abcdefg...'
+	cur_s_pos_ini = ''	# Current cursor init position in selected text 'line.column'
+	cur_s_pos_end = ''	# Current cursor end position in selected text 'line.column'
+	current_cursor = ['','','','','']
+	
 	original_title = 'Sin Nombre'
 	title = original_title
-	script = 'Readzion'
+	script = 'Readzion ' + __version__
 	unsave = '* (Sin Guardar) - '
 	save = ' - '
 	b_unsave = True
@@ -142,44 +155,52 @@ class Notepad:
 		self.thisTextArea.config(yscrollcommand=self.thisScrollBar.set)
 		
 		# Barra de Menu:
+		# Archivo:
 		self.thisFileMenu.add_command(label='Nuevo', underline=0, accelerator='Ctrl+N', command=self.newFile)
-		self.thisFileMenu.add_command(label='Abrir', underline=0, accelerator='Ctrl+A', command=self.openFile)
-		self.thisFileMenu.add_command(label='Guardar', underline=0, accelerator='Ctrl+G', command=self.saveFile)
+		self.thisFileMenu.add_command(label='Abrir', underline=0, accelerator='Ctrl+O', command=self.openFile)
+		self.thisFileMenu.add_command(label='Guardar', underline=0, accelerator='Ctrl+G / Ctrl+S', command=self.saveFile)
 		self.thisFileMenu.add_command(label='Guardar Como', underline=1, accelerator='Ctrl+U', command=self.saveFileAs)
 		self.thisFileMenu.add_separator()
-		self.thisFileMenu.add_cascade(label='Eliminar Archivo', underline=1, state='disabled', command=self.delFile)
-		self.thisFileMenu.add_cascade(label='Vaciar Archivo', underline=0, state='disabled', command=self.cleanFile)
+		self.thisFileMenu.add_command(label='Eliminar Archivo', underline=1, state='disabled', command=self.delFile)
+		self.thisFileMenu.add_command(label='Vaciar Archivo', underline=0, state='disabled', command=self.cleanFile)
 		self.thisFileMenu.add_separator()
 		self.thisFileMenu.add_command(label='Cerrar', underline=0, accelerator='Esc', command=self.exit)
 		self.thisMenuBar.add_cascade(label='Archivo', underline=0, accelerator='Alt+A', menu=self.thisFileMenu)
 		
+		# Habilitar:
 		self.thisEnableMenu.add_command(label='Siempre Encima', underline=0, accelerator='Activo', command=self.encimar)
 		self.thisEnableMenu.add_command(label='Eliminar', underline=0, accelerator='Inactivo', command=self.habilitarEliminar)
 		self.thisEnableMenu.add_command(label='Vaciar', underline=0, accelerator='Inactivo', command=self.habilitarVaciar)
 		self.thisMenuBar.add_cascade(label='Habilitar', underline=0, accelerator='Alt+H', menu=self.thisEnableMenu)
 		
+		# Cifrar:
+		# ~ self.thisCipherMenu.add_command(label='Base64', underline=0, command=self.updateCurrentCursor)
+		# ~ self.thisMenuBar.add_cascade(label='Cifrar', underline=0, accelerator='Alt+C', menu=self.thisCipherMenu)
+		
+		
+		# Activar Menu:
 		self.root.config(menu=self.thisMenuBar)
 		
 		
 		# Menu PopUp
-		self.menu = Menu(self.root, tearoff=0)
-		self.menu.focus()
-		self.menu.add_cascade(label='Nuevo', command=self.newFile)
-		self.menu.add_cascade(label='Abrir', command=self.openFile)
-		self.menu.add_cascade(label='Guardar', command=self.saveFile)
-		self.menu.add_cascade(label='Guardar Como', command=self.saveFileAs)
-		self.menu.add_separator()
-		self.menu.add_cascade(label='Eliminar Archivo', state='disabled', command=self.delFile)
-		self.menu.add_cascade(label='Vaciar Archivo', state='disabled', command=self.cleanFile)
-		self.menu.add_separator()
-		self.menu.add_cascade(label='Cerrar', command=self.exit)
+		self.popUp.focus()
+		self.popUp.add_command(label='Nuevo', command=self.newFile)
+		self.popUp.add_command(label='Abrir', command=self.openFile)
+		self.popUp.add_command(label='Guardar', command=self.saveFile)
+		self.popUp.add_command(label='Guardar Como', command=self.saveFileAs)
+		self.popUp.add_separator()
+		self.popUpF.add_command(label='Eliminar Archivo', state='disabled', command=self.delFile)
+		self.popUpF.add_command(label='Vaciar Archivo', state='disabled', command=self.cleanFile)
+		self.popUp.add_cascade(label='Archivo', menu=self.popUpF)
+		self.popUp.add_separator()
+		self.popUp.add_cascade(label='Cerrar', command=self.exit)
 		
 		
 		# Otros Eventos:
 		self.root.bind('<Button-3>', self.popup)
 		self.root.protocol('WM_DELETE_WINDOW', self.exit)
-		# ~ self.thisTextArea.bind('<Button-1>', self.updateRowsNumber)
-		# ~ self.thisTextArea.bind('<Motion>', self.updateRowsNumber)
+		# ~ self.thisTextArea.bind('<Button-1>', self.updateCurrentCursor)
+		self.thisTextArea.bind('<Motion>', self.updateCurrentCursor)
 		
 		# Eventos del teclado:
 		self.root.bind('<Escape>', self.exit)
@@ -232,7 +253,7 @@ class Notepad:
 		else:
 			self.eliminar_state='normal'
 		
-		self.menu.entryconfig(index='Eliminar Archivo', state=self.eliminar_state)
+		self.popUpF.entryconfig(index='Eliminar Archivo', state=self.eliminar_state)
 		self.thisEnableMenu.entryconfig(index='Eliminar',
 			accelerator='Activo' if self.eliminar_state == 'normal' else 'Inactivo')
 		self.thisFileMenu.entryconfig(index='Eliminar Archivo', state=self.eliminar_state)
@@ -244,7 +265,7 @@ class Notepad:
 		else:
 			self.vaciar_state='active'
 		
-		self.menu.entryconfig(index='Vaciar Archivo', state=self.vaciar_state)
+		self.popUpF.entryconfig(index='Vaciar Archivo', state=self.vaciar_state)
 		self.thisEnableMenu.entryconfig(index='Vaciar',
 			accelerator='Activo' if self.vaciar_state == 'active' else 'Inactivo')
 		self.thisFileMenu.entryconfig(index='Vaciar Archivo', state=self.vaciar_state)
@@ -264,9 +285,10 @@ class Notepad:
 					self.saveFile()
 				
 				self.root.title(self.original_title + self.unsave + self.script)
-				self.b_unsave = True
 				self.thisTextArea.delete(1.0, END)
+				self.title = self.original_title
 				self.updateRowsNumber()
+				self.b_unsave = True
 				self._file = None
 				self.guardado = ''
 				
@@ -274,9 +296,10 @@ class Notepad:
 			
 		else:
 			self.root.title(self.original_title + self.unsave + self.script)
-			self.b_unsave = True
 			self.thisTextArea.delete(1.0, END)
+			self.title = self.original_title
 			self.updateRowsNumber()
+			self.b_unsave = True
 			self._file = None
 			self.guardado = ''
 	
@@ -289,19 +312,29 @@ class Notepad:
 								file_types=[['Archivos ZioN','*.zion']])
 		
 		if f_name:
-			self._file = f_name
-			self.title = os.path.basename(self._file)
-			self.root.title(self.title + self.save + self.script)
-			self.b_unsave = False
-			self.thisTextArea.delete(1.0, END)
 			
-			with open(self._file, 'rb') as f:
+			with open(f_name, 'rb') as f:
+				
 				text = f.read()
-				text = decode(text).decode()
+				
+				try:
+					text = decode(text).decode()
+				except base64.binascii.Error:
+					showwarning('No se pudo Abrir el Documento',
+						'Documento: '+os.path.basename(f_name)+\
+						'\nTiene una Codificacion Desconocida o esta Dañado')
+					return
+				
 				while text.endswith('\n'):
 					text = text[:-1]
 				text += '\n'
 				f.close()
+			
+			self._file = f_name
+			self.title = os.path.basename(self._file)
+			self.root.title(self.title + self.save + self.script)
+			self.thisTextArea.delete(1.0, END)
+			self.b_unsave = False
 			
 			self.thisTextArea.insert(1.0, text)
 			self.guardado = self.thisTextArea.get(1.0,END)
@@ -430,6 +463,50 @@ class Notepad:
 		# ~ self.thisTextArea.tag_add('here', '1.0', '1.8')
 		# ~ self.thisTextArea.tag_config('here', background='black', foreground='green')
 	
+	# ~ def copyText(self, event=None):
+		# ~ self.clipboard_clear()
+		# ~ text = self.thisTextArea.get(SEL_FIRST, SEL_LAST)
+		# ~ self.clipboard_append(text)
+
+	# ~ def cutText(self, event=''):
+		# ~ self.copyText()
+		# ~ self.thisTextArea.delete(SEL_FIRST, SEL_LAST)
+
+	# ~ def pasteText(self, event=''):
+		# ~ text = self.thisTextArea.selection_get(selection='CLIPBOARD')
+		# ~ self.thisTextArea.insert('insert', text)
+	
+	def updateCurrentCursor(self, event=''):
+		
+		clip = ''
+		self.cur_c_pos  = self.thisTextArea.index(INSERT)
+		self.cur_c_char = self.thisTextArea.get(INSERT)
+		
+		try:
+			self.cur_s_text    = self.thisTextArea.selection_get()
+			self.cur_s_pos_ini = self.thisTextArea.index(SEL_FIRST)
+			self.cur_s_pos_end = self.thisTextArea.index(SEL_LAST)
+		except TclError:
+			self.cur_s_text    = ''
+			self.cur_s_pos_ini = ''
+			self.cur_s_pos_end = ''
+		try:
+			clip = self.root.clipboard_get()
+		except TclError:
+			clip = ''
+		
+		self.current_cursor = [
+				self.cur_c_pos,
+				self.cur_c_char,
+				self.cur_s_text,
+				self.cur_s_pos_ini,
+				self.cur_s_pos_end,
+				clip
+			]
+		
+		# ~ print(self.current_cursor)
+		self.updateStatusBar()
+	
 	def cut_paste(self, event=''):
 		if self.c_bs == 0:
 			self.root.after(100, self.cut_paste)
@@ -440,7 +517,9 @@ class Notepad:
 		self.updateRowsNumber()
 	
 	def updateStatusBar(self):
-		self.status.set('Filas: {:<6}'.format(self.rowsNumber))
+		line, col = self.current_cursor[0].split('.')
+		self.status.set('Ln {}, Col {}  |  Filas: {:<6}'.format(
+			int(line), int(col)+1, self.rowsNumber))
 	
 	def intro_pressed(self, event):
 		self.chkStatusFile()
@@ -479,14 +558,17 @@ class Notepad:
 			self.c_csf += 1
 		else:
 			self.c_csf = 0
+		
+		self.updateCurrentCursor()
 	
 	def updateRowsNumber(self, event=''):
+		self.updateCurrentCursor()
 		self.chkStatusFile()
 		self.rowsNumber = self.thisTextArea.index('end-1c').split('.')[0]
 		self.updateStatusBar()
 	
 	def popup(self, event):
-		self.menu.post(event.x_root, event.y_root)
+		self.popUp.post(event.x_root, event.y_root)
 	
 	def exit(self, event=''):
 		self.root.wm_attributes('-topmost', False)
