@@ -1,12 +1,12 @@
 
 # By: LawlietJH
-# Readzion v1.1.4
+# Readzion v1.1.5
 # Python 3
 
 #=======================================================================
 
 __author__ ='LawlietJH'
-__version__='v1.1.4'
+__version__='v1.1.5'
 
 debbuger = False
 
@@ -68,22 +68,38 @@ class Notepad:
 			self.label.config(text='')
 			self.label.update_idletasks()
 	
+	#===================================================================
+	
 	root = Tk()
+	
+	# La ventana por encima de todo:
+	root.wm_attributes('-topmost', True)
+	
 	thisWidth = 600
 	thisHeight = 400
 	
+	#===================================================================
+	
 	# Pagina de colores: https://mycolor.space/?hex=%23002045&sub=1
 	thisTextArea = Text(root, bg='#002045', fg='#EBEBFF', bd=1,
-		insertbackground='#B5D5F5', selectbackground='#008080')
-	thisScrollBar = Scrollbar(thisTextArea)
+		insertbackground='#B5D5F5', selectbackground='#008080',
+		wrap=CHAR)		#wrap = NONE, CHAR or WORD
+	thisScrollBarY = Scrollbar(thisTextArea)
+	# ~ thisScrollBarX = Scrollbar(thisTextArea, orient=HORIZONTAL)
+	
+	#===================================================================
 	
 	thisMenuBar = Menu(root)
 	thisFileMenu = Menu(thisMenuBar, tearoff=0)
 	thisEnableMenu = Menu(thisMenuBar, tearoff=0)
 	thisCipherMenu = Menu(thisMenuBar, tearoff=0)
 	
+	#===================================================================
+	
 	popUp = Menu(root, tearoff=0)
 	popUpF = Menu(popUp, tearoff=0)
+	
+	#===================================================================
 	
 	eliminar_state = 'disabled'
 	vaciar_state = 'disabled'
@@ -93,12 +109,17 @@ class Notepad:
 	c_csf = 0
 	c_bs = 0
 	
-	cur_c_pos = '1.0'	# Current cursor position in the text 'line.column'
-	cur_c_char = '\n'	# Current cursor position char in the text 'a'
-	cur_s_text = ''		# Current selection text in text 'abcdefg...'
-	cur_s_pos_ini = ''	# Current cursor init position in selected text 'line.column'
-	cur_s_pos_end = ''	# Current cursor end position in selected text 'line.column'
-	current_cursor = ['','','','','']
+	#===================================================================
+	
+	cur_c_pos     = '1.0'	# Current cursor position in the text 'line.column'
+	cur_c_char    = '\n'	# Current cursor position char in the text 'a'
+	cur_s_text    = ''		# Current selection text in text 'abcdefg...'
+	cur_s_pos_ini = ''		# Current cursor init position in selected text 'line.column'
+	cur_s_pos_end = ''		# Current cursor end position in selected text 'line.column'
+	
+	current_cursor = [cur_c_pos, cur_c_char, cur_s_text, cur_s_pos_ini, cur_s_pos_end]
+	
+	#===================================================================
 	
 	original_title = 'Sin Nombre'
 	title = original_title
@@ -106,7 +127,7 @@ class Notepad:
 	unsave = '* (Sin Guardar) - '
 	save = ' - '
 	b_unsave = True
-	guardado = ''
+	guardado = None
 	
 	def __init__(self, **kwargs):
 		
@@ -118,9 +139,6 @@ class Notepad:
 			self.thisWidth = kwargs['width']
 			self.thisHeight = kwargs['height']
 		except KeyError: pass
-		
-		# La ventana por encima de todo:
-		self.root.wm_attributes('-topmost', True)
 		
 		# Titulo de la ventana:
 		self.root.title(self.title + self.unsave + self.script)
@@ -147,14 +165,44 @@ class Notepad:
 		
 		# Add controls (widget)
 		self.thisTextArea.grid(sticky = N + E + S + W)
+		self.thisScrollBarY.pack(side=RIGHT, fill=Y)
+		# ~ self.thisScrollBarX.pack(side=BOTTOM, fill=X)
+		self.thisScrollBarY.config(command=self.thisTextArea.yview)			# Scrollbar se ajustara automaticamente acorde al contenido
+		# ~ self.thisScrollBarX.config(command=self.thisTextArea.xview)			# Scrollbar se ajustara automaticamente acorde al contenido
+		self.thisTextArea.config(yscrollcommand=self.thisScrollBarY.set)#,
+								# ~ xscrollcommand=self.thisScrollBarX.set)
 		
-		self.thisScrollBar.pack(side=RIGHT, fill=Y)
-		
-		# Scrollbar se ajustara automaticamente acorde al contenido
-		self.thisScrollBar.config(command=self.thisTextArea.yview)
-		self.thisTextArea.config(yscrollcommand=self.thisScrollBar.set)
+		# Menus: =======================================================
 		
 		# Barra de Menu:
+		self.barra_menu()
+		
+		# Menu PopUp
+		self.popup_menu()
+		
+		#===============================================================
+		
+		# Otros Eventos:
+		# ~ self.thisTextArea.bind('<Button-1>', self.updateCurrentCursor)
+		self.root.bind('<Button-3>', self.popup)
+		self.root.protocol('WM_DELETE_WINDOW', self.exit)
+		self.thisTextArea.bind('<Motion>', self.updateCurrentCursor)
+		
+		# Eventos del teclado:
+		self.bind_keys()
+		
+		
+		# ~ self.button = Button(root, text='Destroy', command=root.destroy)
+		# ~ self.button.pack()
+		
+		# ~ self.root.after(10000, lambda: self.chkStatusFile())
+	
+	#===================================================================
+	#===================================================================
+	#===================================================================
+	
+	def barra_menu(self):
+		
 		# Archivo:
 		self.thisFileMenu.add_command(label='Nuevo', underline=0, accelerator='Ctrl+N', command=self.newFile)
 		self.thisFileMenu.add_command(label='Abrir', underline=0, accelerator='Ctrl+O', command=self.openFile)
@@ -177,12 +225,11 @@ class Notepad:
 		# ~ self.thisCipherMenu.add_command(label='Base64', underline=0, command=self.updateCurrentCursor)
 		# ~ self.thisMenuBar.add_cascade(label='Cifrar', underline=0, accelerator='Alt+C', menu=self.thisCipherMenu)
 		
-		
 		# Activar Menu:
 		self.root.config(menu=self.thisMenuBar)
+	
+	def popup_menu(self):
 		
-		
-		# Menu PopUp
 		self.popUp.focus()
 		self.popUp.add_command(label='Nuevo', command=self.newFile)
 		self.popUp.add_command(label='Abrir', command=self.openFile)
@@ -194,13 +241,8 @@ class Notepad:
 		self.popUp.add_cascade(label='Archivo', menu=self.popUpF)
 		self.popUp.add_separator()
 		self.popUp.add_cascade(label='Cerrar', command=self.exit)
-		
-		
-		# Otros Eventos:
-		self.root.bind('<Button-3>', self.popup)
-		self.root.protocol('WM_DELETE_WINDOW', self.exit)
-		# ~ self.thisTextArea.bind('<Button-1>', self.updateCurrentCursor)
-		self.thisTextArea.bind('<Motion>', self.updateCurrentCursor)
+	
+	def bind_keys(self):
 		
 		# Eventos del teclado:
 		self.root.bind('<Escape>', self.exit)
@@ -230,13 +272,14 @@ class Notepad:
 		self.thisTextArea.bind('<Key>', self.chkStatusFile)
 		# ~ self.thisTextArea.bind('<Enter>', self.)
 		# ~ self.thisTextArea.bind('<Leave>', self.)
-		
-		# ~ self.button = Button(root, text='Destroy', command=root.destroy)
-		# ~ self.button.pack()
-		
-		# ~ self.root.after(10000, lambda: self.chkStatusFile())
 	
-	def encimar(self, event=''):
+	#===================================================================
+	#===================================================================
+	#===================================================================
+	
+	# Menu > Habilitar:
+	
+	def encimar(self, event=None):
 		
 		if self.encima_state == True:
 			self.encima_state = False
@@ -246,7 +289,7 @@ class Notepad:
 		self.root.wm_attributes('-topmost', self.encima_state)
 		self.thisEnableMenu.entryconfigure(index='Siempre Encima', accelerator='Activo' if self.encima_state else 'Inactivo')
 	
-	def habilitarEliminar(self, event=''):
+	def habilitarEliminar(self, event=None):
 		
 		if self.eliminar_state=='normal':
 			self.eliminar_state='disabled'
@@ -258,7 +301,7 @@ class Notepad:
 			accelerator='Activo' if self.eliminar_state == 'normal' else 'Inactivo')
 		self.thisFileMenu.entryconfig(index='Eliminar Archivo', state=self.eliminar_state)
 	
-	def habilitarVaciar(self, event=''):
+	def habilitarVaciar(self, event=None):
 		
 		if self.vaciar_state=='active':
 			self.vaciar_state='disabled'
@@ -270,8 +313,13 @@ class Notepad:
 			accelerator='Activo' if self.vaciar_state == 'active' else 'Inactivo')
 		self.thisFileMenu.entryconfig(index='Vaciar Archivo', state=self.vaciar_state)
 	
+	#===================================================================
+	#===================================================================
+	#===================================================================
 	
-	def newFile(self, event=''):
+	# Menu > Archivo:
+	
+	def newFile(self, event=None):
 		if self.b_unsave:
 			if self._file:
 				
@@ -290,7 +338,7 @@ class Notepad:
 				self.updateRowsNumber()
 				self.b_unsave = True
 				self._file = None
-				self.guardado = ''
+				self.guardado = None
 				
 				self.root.wm_attributes('-topmost', True)
 			
@@ -301,9 +349,9 @@ class Notepad:
 			self.updateRowsNumber()
 			self.b_unsave = True
 			self._file = None
-			self.guardado = ''
+			self.guardado = None
 	
-	def openFile(self, event=''):
+	def openFile(self, event=None):
 		
 		text = ''
 		self.root.wm_attributes('-topmost', False)
@@ -344,7 +392,7 @@ class Notepad:
 		self.root.wm_attributes('-topmost', True)
 		self.updateRowsNumber()
 	
-	def saveFile(self, event=''):
+	def saveFile(self, event=None):
 		
 		self.root.wm_attributes('-topmost', False)
 		
@@ -394,7 +442,7 @@ class Notepad:
 		self.root.wm_attributes('-topmost', True)
 		self.updateRowsNumber()
 	
-	def saveFileAs(self, event=''):
+	def saveFileAs(self, event=None):
 		self.root.wm_attributes('-topmost', False)
 		f_name_s = ex.getFileNameSave(title='Guardar Como Archivo Tipo ZioN',
 								file_types=[['Archivos ZioN','*.zion']])
@@ -428,7 +476,7 @@ class Notepad:
 		self.root.wm_attributes('-topmost', True)
 		self.updateRowsNumber()
 	
-	def delFile(self, event=''):
+	def delFile(self, event=None):
 		
 		if self._file:
 			self.root.wm_attributes('-topmost', False)
@@ -443,7 +491,7 @@ class Notepad:
 			
 			self.root.wm_attributes('-topmost', True)
 	
-	def cleanFile(self, event=''):
+	def cleanFile(self, event=None):
 		
 		if self._file:
 			
@@ -459,24 +507,36 @@ class Notepad:
 			
 			self.root.wm_attributes('-topmost', True)
 	
-	# ~ def track_change_to_text(self, event):
-		# ~ self.thisTextArea.tag_add('here', '1.0', '1.8')
-		# ~ self.thisTextArea.tag_config('here', background='black', foreground='green')
+	#===================================================================
+	#===================================================================
+	#===================================================================
 	
-	# ~ def copyText(self, event=None):
-		# ~ self.clipboard_clear()
-		# ~ text = self.thisTextArea.get(SEL_FIRST, SEL_LAST)
-		# ~ self.clipboard_append(text)
-
-	# ~ def cutText(self, event=''):
-		# ~ self.copyText()
-		# ~ self.thisTextArea.delete(SEL_FIRST, SEL_LAST)
-
-	# ~ def pasteText(self, event=''):
-		# ~ text = self.thisTextArea.selection_get(selection='CLIPBOARD')
-		# ~ self.thisTextArea.insert('insert', text)
+	# ~ def track_change_to_text(self, event=None):
+		# ~ content = 'Hola :3'
+		# ~ #self.thisTextArea.tag_add('here', '1.0', '1.8')
+		# ~ #self.thisTextArea.tag_config('here', background='black', foreground='green')
+		# ~ text.tag_config("back", background="yellow", foreground="red")
+		# ~ text.tag_config("fore", foreground="blue")
+		# ~ text.insert(contents, ("back", "fore"))
 	
-	def updateCurrentCursor(self, event=''):
+	def copyText(self, event=None):
+		text = self.thisTextArea.get(SEL_FIRST, SEL_LAST)
+		self.clipboard_clear()
+		self.clipboard_append(text)
+	
+	def cutText(self, event=None):
+		self.copyText()
+		self.thisTextArea.delete(SEL_FIRST, SEL_LAST)
+	
+	def pasteText(self, event=None):
+		text = self.thisTextArea.selection_get(selection='CLIPBOARD')
+		self.thisTextArea.insert('insert', text)
+	
+	#===================================================================
+	#===================================================================
+	#===================================================================
+	
+	def updateCurrentCursor(self, event=None):
 		
 		clip = ''
 		self.cur_c_pos  = self.thisTextArea.index(INSERT)
@@ -507,7 +567,7 @@ class Notepad:
 		# ~ print(self.current_cursor)
 		self.updateStatusBar()
 	
-	def cut_paste(self, event=''):
+	def cut_paste(self, event=None):
 		if self.c_bs == 0:
 			self.root.after(100, self.cut_paste)
 			self.c_bs += 1
@@ -518,7 +578,7 @@ class Notepad:
 	
 	def updateStatusBar(self):
 		line, col = self.current_cursor[0].split('.')
-		self.status.set('Ln {}, Col {}  |  Filas: {:<6}'.format(
+		self.status.set('|   Línea {}, Col {}   |  Filas: {:<6}'.format(
 			int(line), int(col)+1, self.rowsNumber))
 	
 	def intro_pressed(self, event):
@@ -526,7 +586,7 @@ class Notepad:
 		self.rowsNumber = self.thisTextArea.index('end').split('.')[0]
 		self.updateStatusBar()
 	
-	def backspace_pressed(self, event=''):
+	def backspace_pressed(self, event=None):
 		self.chkStatusFile()
 		val = self.thisTextArea.get(1.0,END).count('\n')
 		# ~ cur = self.thisTextArea.index(INSERT)
@@ -539,7 +599,7 @@ class Notepad:
 		else:
 			self.c_bs = 0
 	
-	def chkStatusFile(self, event=''):
+	def chkStatusFile(self, event=None):
 		
 		if self._file and not file_exists(self._file):
 			self.root.title(self.title + self.unsave + self.script)
@@ -561,7 +621,7 @@ class Notepad:
 		
 		self.updateCurrentCursor()
 	
-	def updateRowsNumber(self, event=''):
+	def updateRowsNumber(self, event=None):
 		self.updateCurrentCursor()
 		self.chkStatusFile()
 		self.rowsNumber = self.thisTextArea.index('end-1c').split('.')[0]
@@ -570,7 +630,7 @@ class Notepad:
 	def popup(self, event):
 		self.popUp.post(event.x_root, event.y_root)
 	
-	def exit(self, event=''):
+	def exit(self, event=None):
 		self.root.wm_attributes('-topmost', False)
 		if self.b_unsave == True:
 			if askokcancel('Cerrar', 'Desea Salir Sin Guardar?'):
@@ -583,6 +643,10 @@ class Notepad:
 			self.root.destroy()
 			Hide(False)
 			sys.exit()
+	
+	#===================================================================
+	#===================================================================
+	#===================================================================
 	
 	def run(self):
 		# Corre el programa:
