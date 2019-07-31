@@ -1,12 +1,12 @@
 
 # By: LawlietJH
-# Readzion v1.1.5
+# Readzion v1.1.6
 # Python 3
 
 #=======================================================================
 
 __author__ ='LawlietJH'
-__version__='v1.1.5'
+__version__='v1.1.6'
 
 debbuger = False
 
@@ -85,14 +85,11 @@ class Notepad:
 		insertbackground='#B5D5F5', selectbackground='#008080',
 		wrap=CHAR)		#wrap = NONE, CHAR or WORD
 	thisScrollBarY = Scrollbar(thisTextArea)
-	# ~ thisScrollBarX = Scrollbar(thisTextArea, orient=HORIZONTAL)
+	thisScrollBarX = Scrollbar(thisTextArea, orient=HORIZONTAL)
 	
 	#===================================================================
 	
 	thisMenuBar = Menu(root)
-	thisFileMenu = Menu(thisMenuBar, tearoff=0)
-	thisEnableMenu = Menu(thisMenuBar, tearoff=0)
-	thisCipherMenu = Menu(thisMenuBar, tearoff=0)
 	
 	#===================================================================
 	
@@ -101,9 +98,12 @@ class Notepad:
 	
 	#===================================================================
 	
-	eliminar_state = 'disabled'
-	vaciar_state = 'disabled'
-	encima_state = True
+	eliminar_state = False
+	vaciar_state = False
+	encima_state = False
+	
+	line_state = CHAR
+	
 	rowsNumber = 1
 	_file = None
 	c_csf = 0
@@ -166,11 +166,11 @@ class Notepad:
 		# Add controls (widget)
 		self.thisTextArea.grid(sticky = N + E + S + W)
 		self.thisScrollBarY.pack(side=RIGHT, fill=Y)
-		# ~ self.thisScrollBarX.pack(side=BOTTOM, fill=X)
+		self.thisScrollBarX.pack(side=BOTTOM, fill=X)
 		self.thisScrollBarY.config(command=self.thisTextArea.yview)			# Scrollbar se ajustara automaticamente acorde al contenido
-		# ~ self.thisScrollBarX.config(command=self.thisTextArea.xview)			# Scrollbar se ajustara automaticamente acorde al contenido
-		self.thisTextArea.config(yscrollcommand=self.thisScrollBarY.set)#,
-								# ~ xscrollcommand=self.thisScrollBarX.set)
+		self.thisScrollBarX.config(command=self.thisTextArea.xview)			# Scrollbar se ajustara automaticamente acorde al contenido
+		self.thisTextArea.config(yscrollcommand=self.thisScrollBarY.set,
+								xscrollcommand=self.thisScrollBarX.set)
 		
 		# Menus: =======================================================
 		
@@ -203,6 +203,12 @@ class Notepad:
 	
 	def barra_menu(self):
 		
+		self.thisFileMenu = Menu(self.thisMenuBar, tearoff=0)
+		self.thisEnableMenu = Menu(self.thisMenuBar, tearoff=0)
+		self.thisLineTextMenu = Menu(self.thisMenuBar, tearoff=0)
+		self.thisSubLineText = Menu(self.thisMenuBar, tearoff=0)
+		self.thisCipherMenu = Menu(self.thisMenuBar, tearoff=0)
+		
 		# Archivo:
 		self.thisFileMenu.add_command(label='Nuevo', underline=0, accelerator='Ctrl+N', command=self.newFile)
 		self.thisFileMenu.add_command(label='Abrir', underline=0, accelerator='Ctrl+O', command=self.openFile)
@@ -213,19 +219,28 @@ class Notepad:
 		self.thisFileMenu.add_command(label='Vaciar Archivo', underline=0, state='disabled', command=self.cleanFile)
 		self.thisFileMenu.add_separator()
 		self.thisFileMenu.add_command(label='Cerrar', underline=0, accelerator='Esc', command=self.exit)
-		self.thisMenuBar.add_cascade(label='Archivo', underline=0, accelerator='Alt+A', menu=self.thisFileMenu)
 		
 		# Habilitar:
-		self.thisEnableMenu.add_command(label='Siempre Encima', underline=0, accelerator='Activo', command=self.encimar)
-		self.thisEnableMenu.add_command(label='Eliminar', underline=0, accelerator='Inactivo', command=self.habilitarEliminar)
-		self.thisEnableMenu.add_command(label='Vaciar', underline=0, accelerator='Inactivo', command=self.habilitarVaciar)
-		self.thisMenuBar.add_cascade(label='Habilitar', underline=0, accelerator='Alt+H', menu=self.thisEnableMenu)
+		self.thisEnableMenu.add_checkbutton(label='Siempre Encima', underline=0, command=self.encimar)
+		self.thisEnableMenu.add_checkbutton(label='Eliminar', underline=0, command=self.habilitarEliminar)
+		self.thisEnableMenu.add_checkbutton(label='Vaciar', underline=0, command=self.habilitarVaciar)
+		self.thisEnableMenu.invoke(0)
+		
+		# Formato:
+		self.thisSubLineText.add_radiobutton(label='Por Caracter', underline=0, command=lambda: self.thisTextArea.config(wrap=CHAR))
+		self.thisSubLineText.add_radiobutton(label='De Forma Continua', underline=0, command=lambda: self.thisTextArea.config(wrap=NONE))
+		self.thisSubLineText.add_radiobutton(label='Por Palabra', underline=0, command=lambda: self.thisTextArea.config(wrap=WORD))
+		self.thisLineTextMenu.add_cascade(label='Ajuste de línea', underline=0, menu=self.thisSubLineText)
+		self.thisSubLineText.invoke(0)
 		
 		# Cifrar:
 		# ~ self.thisCipherMenu.add_command(label='Base64', underline=0, command=self.updateCurrentCursor)
-		# ~ self.thisMenuBar.add_cascade(label='Cifrar', underline=0, accelerator='Alt+C', menu=self.thisCipherMenu)
 		
 		# Activar Menu:
+		self.thisMenuBar.add_cascade(label='Archivo', underline=0, accelerator='Alt+A', menu=self.thisFileMenu)
+		self.thisMenuBar.add_cascade(label='Habilitar', underline=0, accelerator='Alt+H', menu=self.thisEnableMenu)
+		self.thisMenuBar.add_cascade(label='Formato', underline=0, accelerator='Alt+F', menu=self.thisLineTextMenu)
+		# ~ self.thisMenuBar.add_cascade(label='Cifrar', underline=0, accelerator='Alt+C', menu=self.thisCipherMenu)
 		self.root.config(menu=self.thisMenuBar)
 	
 	def popup_menu(self):
@@ -287,31 +302,27 @@ class Notepad:
 			self.encima_state = True
 		
 		self.root.wm_attributes('-topmost', self.encima_state)
-		self.thisEnableMenu.entryconfigure(index='Siempre Encima', accelerator='Activo' if self.encima_state else 'Inactivo')
+		# ~ self.thisEnableMenu.entryconfigure(index='Siempre Encima', accelerator='Activo' if self.encima_state else 'Inactivo')
 	
 	def habilitarEliminar(self, event=None):
 		
-		if self.eliminar_state=='normal':
-			self.eliminar_state='disabled'
+		if self.eliminar_state==True:
+			self.eliminar_state=False
 		else:
-			self.eliminar_state='normal'
+			self.eliminar_state=True
 		
-		self.popUpF.entryconfig(index='Eliminar Archivo', state=self.eliminar_state)
-		self.thisEnableMenu.entryconfig(index='Eliminar',
-			accelerator='Activo' if self.eliminar_state == 'normal' else 'Inactivo')
-		self.thisFileMenu.entryconfig(index='Eliminar Archivo', state=self.eliminar_state)
+		self.popUpF.entryconfig(index='Eliminar Archivo', state='active' if self.eliminar_state else 'disabled')
+		self.thisFileMenu.entryconfig(index='Eliminar Archivo', state='active' if self.eliminar_state else 'disabled')
 	
 	def habilitarVaciar(self, event=None):
 		
-		if self.vaciar_state=='active':
-			self.vaciar_state='disabled'
+		if self.vaciar_state==True:
+			self.vaciar_state=False
 		else:
-			self.vaciar_state='active'
+			self.vaciar_state=True
 		
-		self.popUpF.entryconfig(index='Vaciar Archivo', state=self.vaciar_state)
-		self.thisEnableMenu.entryconfig(index='Vaciar',
-			accelerator='Activo' if self.vaciar_state == 'active' else 'Inactivo')
-		self.thisFileMenu.entryconfig(index='Vaciar Archivo', state=self.vaciar_state)
+		self.popUpF.entryconfig(index='Vaciar Archivo', state='active' if self.vaciar_state else 'disabled')
+		self.thisFileMenu.entryconfig(index='Vaciar Archivo', state='active' if self.vaciar_state else 'disabled')
 	
 	#===================================================================
 	#===================================================================
