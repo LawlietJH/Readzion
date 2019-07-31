@@ -1,15 +1,14 @@
 
 # By: LawlietJH
-# Readzion v1.1.6
+# Readzion v1.1.7
 # Python 3
 
 #=======================================================================
 
 __author__ ='LawlietJH'
-__version__='v1.1.6'
+__version__='v1.1.7'
 
 debbuger = False
-
 #Hide Console
 def Hide(xD=True):
 	
@@ -31,9 +30,10 @@ if not debbuger:
 # ~ try: import tkinter as tk
 # ~ except: import Tkinter as tk
 
+import win32clipboard as WCB					# pip install pywin32
 from tkinter import *
 from tkinter.messagebox import *
-from explorer import Explorer as ex
+from explorer import Explorer as ex				# Descragar De: github.com/LawlietJH/Explorer
 import base64
 import os
 
@@ -67,6 +67,25 @@ class Notepad:
 		def clear(self):
 			self.label.config(text='')
 			self.label.update_idletasks()
+	
+	class Clipboard:
+		
+		def getText():
+			WCB.OpenClipboard()
+			data = WCB.GetClipboardData()
+			WCB.CloseClipboard()
+			return data
+		
+		def setText(cadena):
+			WCB.OpenClipboard()
+			WCB.EmptyClipboard()
+			WCB.SetClipboardText(cadena.encode('utf-8'), WCB.CF_TEXT)
+			WCB.CloseClipboard()
+		
+		def cleanText():
+			WCB.OpenClipboard()
+			WCB.EmptyClipboard()
+			WCB.CloseClipboard()
 	
 	#===================================================================
 	
@@ -102,12 +121,13 @@ class Notepad:
 	vaciar_state = False
 	encima_state = False
 	
-	line_state = CHAR
-	
 	rowsNumber = 1
 	_file = None
+	c_clip = 0
 	c_csf = 0
 	c_bs = 0
+	
+	l_base64 = []
 	
 	#===================================================================
 	
@@ -147,7 +167,7 @@ class Notepad:
 		# Crea Barra de Estado:
 		self.status = self.StatusBar(self.thisTextArea)
 		self.status.pack(side=BOTTOM, fill=X)
-		self.updateRowsNumber()
+		self.chkStatusFile()
 		
 		# Centrar la ventana:
 		screenWidth = self.root.winfo_screenwidth()
@@ -234,13 +254,13 @@ class Notepad:
 		self.thisSubLineText.invoke(0)
 		
 		# Cifrar:
-		# ~ self.thisCipherMenu.add_command(label='Base64', underline=0, command=self.updateCurrentCursor)
+		self.thisCipherMenu.add_command(label='Base64', underline=0, command=self.setBase64)
 		
 		# Activar Menu:
 		self.thisMenuBar.add_cascade(label='Archivo', underline=0, accelerator='Alt+A', menu=self.thisFileMenu)
 		self.thisMenuBar.add_cascade(label='Habilitar', underline=0, accelerator='Alt+H', menu=self.thisEnableMenu)
 		self.thisMenuBar.add_cascade(label='Formato', underline=0, accelerator='Alt+F', menu=self.thisLineTextMenu)
-		# ~ self.thisMenuBar.add_cascade(label='Cifrar', underline=0, accelerator='Alt+C', menu=self.thisCipherMenu)
+		self.thisMenuBar.add_cascade(label='Cifrar', underline=0, accelerator='Alt+C', menu=self.thisCipherMenu)
 		self.root.config(menu=self.thisMenuBar)
 	
 	def popup_menu(self):
@@ -281,6 +301,11 @@ class Notepad:
 		self.thisTextArea.bind('<Control-u>', self.saveFileAs)
 		self.thisTextArea.bind('<Control-U>', self.saveFileAs)
 		
+		# ~ self.thisTextArea.bind('<Control-v>', self.chkPaste)
+		# ~ self.thisTextArea.bind('<Control-V>', self.chkPaste)
+		# ~ self.thisTextArea.bind('<Control-c>', self.chkPaste)
+		# ~ self.thisTextArea.bind('<Control-C>', self.chkPaste)
+		
 		self.thisTextArea.bind('<Return>', self.intro_pressed)
 		self.thisTextArea.bind('<BackSpace>', self.backspace_pressed)
 		
@@ -292,72 +317,40 @@ class Notepad:
 	#===================================================================
 	#===================================================================
 	
-	# Menu > Habilitar:
-	
-	def encimar(self, event=None):
-		
-		if self.encima_state == True:
-			self.encima_state = False
-		else:
-			self.encima_state = True
-		
-		self.root.wm_attributes('-topmost', self.encima_state)
-		# ~ self.thisEnableMenu.entryconfigure(index='Siempre Encima', accelerator='Activo' if self.encima_state else 'Inactivo')
-	
-	def habilitarEliminar(self, event=None):
-		
-		if self.eliminar_state==True:
-			self.eliminar_state=False
-		else:
-			self.eliminar_state=True
-		
-		self.popUpF.entryconfig(index='Eliminar Archivo', state='active' if self.eliminar_state else 'disabled')
-		self.thisFileMenu.entryconfig(index='Eliminar Archivo', state='active' if self.eliminar_state else 'disabled')
-	
-	def habilitarVaciar(self, event=None):
-		
-		if self.vaciar_state==True:
-			self.vaciar_state=False
-		else:
-			self.vaciar_state=True
-		
-		self.popUpF.entryconfig(index='Vaciar Archivo', state='active' if self.vaciar_state else 'disabled')
-		self.thisFileMenu.entryconfig(index='Vaciar Archivo', state='active' if self.vaciar_state else 'disabled')
-	
-	#===================================================================
-	#===================================================================
-	#===================================================================
-	
 	# Menu > Archivo:
 	
 	def newFile(self, event=None):
 		if self.b_unsave:
+			
+			resp = ''
+			self.root.wm_attributes('-topmost', False)
+			
 			if self._file:
-				
-				self.root.wm_attributes('-topmost', False)
-				
 				resp = askyesno('Confirmar Guardar Cambios',
 					'Desea Guardar los Cambios en el Archivo '+\
 					os.path.basename(self._file))
+			else:
+				resp = askyesno('Confirmar Guardar Cambios',
+					'Desea Guardar el Archivo?')
 				
-				if resp:
-					self.saveFile()
-				
-				self.root.title(self.original_title + self.unsave + self.script)
-				self.thisTextArea.delete(1.0, END)
-				self.title = self.original_title
-				self.updateRowsNumber()
-				self.b_unsave = True
-				self._file = None
-				self.guardado = None
-				
-				self.root.wm_attributes('-topmost', True)
+			if resp:
+				self.saveFile()
+			
+			self.root.title(self.original_title + self.unsave + self.script)
+			self.thisTextArea.delete(1.0, END)
+			self.title = self.original_title
+			self.chkStatusFile()
+			self.b_unsave = True
+			self._file = None
+			self.guardado = None
+			
+			self.root.wm_attributes('-topmost', True)
 			
 		else:
 			self.root.title(self.original_title + self.unsave + self.script)
 			self.thisTextArea.delete(1.0, END)
 			self.title = self.original_title
-			self.updateRowsNumber()
+			self.chkStatusFile()
 			self.b_unsave = True
 			self._file = None
 			self.guardado = None
@@ -401,7 +394,7 @@ class Notepad:
 			self._file = None
 		
 		self.root.wm_attributes('-topmost', True)
-		self.updateRowsNumber()
+		self.chkStatusFile()
 	
 	def saveFile(self, event=None):
 		
@@ -451,7 +444,7 @@ class Notepad:
 				self._file = None
 		
 		self.root.wm_attributes('-topmost', True)
-		self.updateRowsNumber()
+		self.chkStatusFile()
 	
 	def saveFileAs(self, event=None):
 		self.root.wm_attributes('-topmost', False)
@@ -485,7 +478,7 @@ class Notepad:
 			self.guardado = self.thisTextArea.get(1.0,END)
 		
 		self.root.wm_attributes('-topmost', True)
-		self.updateRowsNumber()
+		self.chkStatusFile()
 	
 	def delFile(self, event=None):
 		
@@ -522,30 +515,118 @@ class Notepad:
 	#===================================================================
 	#===================================================================
 	
-	# ~ def track_change_to_text(self, event=None):
-		# ~ content = 'Hola :3'
-		# ~ #self.thisTextArea.tag_add('here', '1.0', '1.8')
-		# ~ #self.thisTextArea.tag_config('here', background='black', foreground='green')
-		# ~ text.tag_config("back", background="yellow", foreground="red")
-		# ~ text.tag_config("fore", foreground="blue")
-		# ~ text.insert(contents, ("back", "fore"))
+	# Menu > Habilitar:
 	
-	def copyText(self, event=None):
-		text = self.thisTextArea.get(SEL_FIRST, SEL_LAST)
-		self.clipboard_clear()
-		self.clipboard_append(text)
+	def encimar(self, event=None):
+		
+		if self.encima_state == True:
+			self.encima_state = False
+		else:
+			self.encima_state = True
+		
+		self.root.wm_attributes('-topmost', self.encima_state)
 	
-	def cutText(self, event=None):
-		self.copyText()
-		self.thisTextArea.delete(SEL_FIRST, SEL_LAST)
+	def habilitarEliminar(self, event=None):
+		
+		if self.eliminar_state==True:
+			self.eliminar_state=False
+		else:
+			self.eliminar_state=True
+		
+		self.popUpF.entryconfig(index='Eliminar Archivo', state='active' if self.eliminar_state else 'disabled')
+		self.thisFileMenu.entryconfig(index='Eliminar Archivo', state='active' if self.eliminar_state else 'disabled')
 	
-	def pasteText(self, event=None):
-		text = self.thisTextArea.selection_get(selection='CLIPBOARD')
-		self.thisTextArea.insert('insert', text)
+	def habilitarVaciar(self, event=None):
+		
+		if self.vaciar_state==True:
+			self.vaciar_state=False
+		else:
+			self.vaciar_state=True
+		
+		self.popUpF.entryconfig(index='Vaciar Archivo', state='active' if self.vaciar_state else 'disabled')
+		self.thisFileMenu.entryconfig(index='Vaciar Archivo', state='active' if self.vaciar_state else 'disabled')
 	
 	#===================================================================
 	#===================================================================
 	#===================================================================
+	
+	# Menu > Cifrado:
+	
+	def setBase64(self):
+		
+		xD = True
+		s_code = ''
+		s_text = self.current_cursor[2]		# texto seleccionado.
+		if s_text != '':
+			for t, e in self.l_base64:
+				if s_text == t:
+					xD = False
+					s_code = e
+					break
+			
+			if xD:
+				try:
+					s_code = decode(s_text).decode()
+				except:
+					s_code = encode(s_text.encode())
+				
+				self.l_base64.append((s_text, s_code))
+			
+			pos_i, pos_f = self.current_cursor[3:5]
+			
+			if pos_i != '':
+				self.thisTextArea.delete(pos_i, pos_f)
+				self.thisTextArea.insert(pos_i, s_code)
+	
+	#===================================================================
+	#===================================================================
+	#===================================================================
+	
+	def chkStatusFile(self, event=None):
+		
+		if self._file and not file_exists(self._file):
+			self.root.title(self.title + self.unsave + self.script)
+			self.b_unsave = True
+		else:
+			actual = self.thisTextArea.get(1.0,END)
+			if not actual == self.guardado:
+				self.root.title(self.title + self.unsave + self.script)
+				self.b_unsave = True
+			else:
+				self.root.title(self.title + self.save + self.script)
+				self.b_unsave = False
+		
+		if self.c_csf == 0:
+			self.root.after(100, self.chkStatusFile)
+			self.c_csf += 1
+		else:
+			self.c_csf = 0
+		
+		self.updateCurrentCursor()
+	
+	def chkPaste(self, event=None):
+		self.chkStatusFile()
+		self.rowsNumber = self.thisTextArea.index('end-1c').split('.')[0]
+		self.updateStatusBar()
+		# ~ SG9sYSB4RA== --> Hola xD
+		try:
+			c_text = self.Clipboard.getText()
+		except:
+			print('Error')
+			return
+		
+		if c_text != '':
+			
+			try: c_text = decode(c_text).decode()
+			except: pass
+			
+			self.Clipboard.setText(c_text)
+			
+			if self.c_clip == 0:
+				self.root.after(100, self.chkPaste)
+				self.c_clip += 1
+			else:
+				self.c_clip = 0
 	
 	def updateCurrentCursor(self, event=None):
 		
@@ -576,7 +657,13 @@ class Notepad:
 			]
 		
 		# ~ print(self.current_cursor)
+		self.rowsNumber = self.thisTextArea.index('end-1c').split('.')[0]
 		self.updateStatusBar()
+	
+	def updateStatusBar(self):
+		line, col = self.current_cursor[0].split('.')
+		self.status.set('|   Línea {}, Col {}   |  Filas: {:<6}'.format(
+			int(line), int(col)+1, self.rowsNumber))
 	
 	def cut_paste(self, event=None):
 		if self.c_bs == 0:
@@ -584,59 +671,26 @@ class Notepad:
 			self.c_bs += 1
 		else:
 			self.c_bs = 0
+			
 		self.chkStatusFile()
-		self.updateRowsNumber()
-	
-	def updateStatusBar(self):
-		line, col = self.current_cursor[0].split('.')
-		self.status.set('|   Línea {}, Col {}   |  Filas: {:<6}'.format(
-			int(line), int(col)+1, self.rowsNumber))
 	
 	def intro_pressed(self, event):
 		self.chkStatusFile()
-		self.rowsNumber = self.thisTextArea.index('end').split('.')[0]
-		self.updateStatusBar()
+		# ~ self.rowsNumber = self.thisTextArea.index('end').split('.')[0]
+		# ~ self.updateStatusBar()
 	
 	def backspace_pressed(self, event=None):
 		self.chkStatusFile()
-		val = self.thisTextArea.get(1.0,END).count('\n')
-		# ~ cur = self.thisTextArea.index(INSERT)
-		self.rowsNumber = str(val)
-		self.updateStatusBar()
+		# ~ val = self.thisTextArea.get(1.0,END).count('\n')
+		# ~ #cur = self.thisTextArea.index(INSERT)
+		# ~ self.rowsNumber = str(val)
+		# ~ self.updateStatusBar()
 		
 		if self.c_bs == 0:
 			self.root.after(100, self.backspace_pressed)
 			self.c_bs += 1
 		else:
 			self.c_bs = 0
-	
-	def chkStatusFile(self, event=None):
-		
-		if self._file and not file_exists(self._file):
-			self.root.title(self.title + self.unsave + self.script)
-			self.b_unsave = True
-		else:
-			actual = self.thisTextArea.get(1.0,END)
-			if not actual == self.guardado:
-				self.root.title(self.title + self.unsave + self.script)
-				self.b_unsave = True
-			else:
-				self.root.title(self.title + self.save + self.script)
-				self.b_unsave = False
-		
-		if self.c_csf == 0:
-			self.root.after(100, self.chkStatusFile)
-			self.c_csf += 1
-		else:
-			self.c_csf = 0
-		
-		self.updateCurrentCursor()
-	
-	def updateRowsNumber(self, event=None):
-		self.updateCurrentCursor()
-		self.chkStatusFile()
-		self.rowsNumber = self.thisTextArea.index('end-1c').split('.')[0]
-		self.updateStatusBar()
 	
 	def popup(self, event):
 		self.popUp.post(event.x_root, event.y_root)
@@ -659,6 +713,31 @@ class Notepad:
 	#===================================================================
 	#===================================================================
 	
+	# ~ def track_change_to_text(self, event=None):
+		# ~ content = 'Hola :3'
+		# ~ #self.thisTextArea.tag_add('here', '1.0', '1.8')
+		# ~ #self.thisTextArea.tag_config('here', background='black', foreground='green')
+		# ~ text.tag_config("back", background="yellow", foreground="red")
+		# ~ text.tag_config("fore", foreground="blue")
+		# ~ text.insert(contents, ("back", "fore"))
+	
+	# ~ def copyText(self, event=None):
+		# ~ text = self.thisTextArea.get(SEL_FIRST, SEL_LAST)
+		# ~ self.clipboard_clear()
+		# ~ self.clipboard_append(text)
+	
+	# ~ def cutText(self, event=None):
+		# ~ self.copyText()
+		# ~ self.thisTextArea.delete(SEL_FIRST, SEL_LAST)
+	
+	# ~ def pasteText(self, event=None):
+		# ~ text = self.thisTextArea.selection_get(selection='CLIPBOARD')
+		# ~ self.thisTextArea.insert('insert', text)
+	
+	#===================================================================
+	#===================================================================
+	#===================================================================
+	
 	def run(self):
 		# Corre el programa:
 		if not debbuger:
@@ -673,6 +752,3 @@ if __name__ == '__main__':
 	notepad = Notepad(width=720,height=480)
 	# Corre el programa:
 	notepad.run()
-	print(True)
-	
-
