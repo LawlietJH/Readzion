@@ -1,14 +1,15 @@
 
 # By: LawlietJH
-# Readzion v1.1.7
+# Readzion v1.1.8
 # Python 3
 
 #=======================================================================
 
 __author__ ='LawlietJH'
-__version__='v1.1.7'
+__version__='v1.1.8'
 
 debbuger = False
+
 #Hide Console
 def Hide(xD=True):
 	
@@ -108,12 +109,15 @@ class Notepad:
 	
 	#===================================================================
 	
-	thisMenuBar = Menu(root)
+	bg_menu = '#004080'
+	fg_menu = '#EBEBFF'
+	
+	thisMenuBar = Menu(root, bg=bg_menu, fg=fg_menu)
 	
 	#===================================================================
 	
-	popUp = Menu(root, tearoff=0)
-	popUpF = Menu(popUp, tearoff=0)
+	popUp = Menu(root, tearoff=0, bg=bg_menu, fg=fg_menu)
+	popUpF = Menu(popUp, tearoff=0, bg=bg_menu, fg=fg_menu)
 	
 	#===================================================================
 	
@@ -223,11 +227,11 @@ class Notepad:
 	
 	def barra_menu(self):
 		
-		self.thisFileMenu = Menu(self.thisMenuBar, tearoff=0)
-		self.thisEnableMenu = Menu(self.thisMenuBar, tearoff=0)
-		self.thisLineTextMenu = Menu(self.thisMenuBar, tearoff=0)
-		self.thisSubLineText = Menu(self.thisMenuBar, tearoff=0)
-		self.thisCipherMenu = Menu(self.thisMenuBar, tearoff=0)
+		self.thisFileMenu = Menu(self.thisMenuBar, tearoff=0, bg=self.bg_menu, fg=self.fg_menu)
+		self.thisEnableMenu = Menu(self.thisMenuBar, tearoff=0, bg=self.bg_menu, fg=self.fg_menu)
+		self.thisLineTextMenu = Menu(self.thisMenuBar, tearoff=0, bg=self.bg_menu, fg=self.fg_menu)
+		self.thisSubLineText = Menu(self.thisMenuBar, tearoff=0, bg=self.bg_menu, fg=self.fg_menu)
+		self.thisCipherMenu = Menu(self.thisMenuBar, tearoff=0, bg=self.bg_menu, fg=self.fg_menu)
 		
 		# Archivo:
 		self.thisFileMenu.add_command(label='Nuevo', underline=0, accelerator='Ctrl+N', command=self.newFile)
