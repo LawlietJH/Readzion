@@ -1,12 +1,12 @@
 
 # By: LawlietJH
-# Readzion v1.1.8
+# Readzion v1.1.9
 # Python 3
 
 #=======================================================================
 
 __author__ ='LawlietJH'
-__version__='v1.1.8'
+__version__='v1.1.9'
 
 debbuger = False
 
@@ -97,6 +97,8 @@ class Notepad:
 	
 	thisWidth = 600
 	thisHeight = 400
+	
+	_cache_z = []
 	
 	#===================================================================
 	
@@ -221,6 +223,39 @@ class Notepad:
 		
 		# ~ self.root.after(10000, lambda: self.chkStatusFile())
 	
+	def cache(self, event):
+		
+		if event:
+			# ~ print(event.keysym)
+			if 'Control' in event.keysym or 'Alt' in event.keysym\
+			or 'Win' in event.keysym or 'Caps' in event.keysym\
+			or event.keysym in ['Up', 'Down', 'Left', 'Right']\
+			or event.keysym in ['F1','F2','F3','F4', 'F5', 'F6']\
+			or event.keysym in ['F7','F8','F9','F10','F11','F12']\
+			or 'Shift' in event.keysym:
+				return
+			
+		texto = self.thisTextArea.get(1.0,END)[:-1]
+		
+		if not self._cache_z == []:
+			if not self._cache_z[-1] == texto:
+				self._cache_z.append(texto)
+		else:
+			self._cache_z.append(texto)
+	
+	def c_zeta(self, event=None):
+		
+		if not self._cache_z == []:
+			
+			texto = self.thisTextArea.get(1.0,END)[:-1]
+			val = self._cache_z.pop()
+			
+			if val == texto and not self._cache_z == []:
+				val = self._cache_z.pop()
+			
+			self.thisTextArea.delete(1.0, END)
+			self.thisTextArea.insert(1.0, val)
+	
 	#===================================================================
 	#===================================================================
 	#===================================================================
@@ -286,6 +321,9 @@ class Notepad:
 		# Eventos del teclado:
 		self.root.bind('<Escape>', self.exit)
 		
+		self.thisTextArea.bind('<Control-z>', self.c_zeta)
+		self.thisTextArea.bind('<Control-Z>', self.c_zeta)
+		
 		self.thisTextArea.bind('<Control-x>', self.cut_paste)
 		self.thisTextArea.bind('<Control-v>', self.cut_paste)
 		self.thisTextArea.bind('<Control-X>', self.cut_paste)
@@ -324,6 +362,7 @@ class Notepad:
 	# Menu > Archivo:
 	
 	def newFile(self, event=None):
+		texto = self.thisTextArea.get(1.0,END)[:-1]
 		if self.b_unsave:
 			
 			resp = ''
@@ -358,6 +397,8 @@ class Notepad:
 			self.b_unsave = True
 			self._file = None
 			self.guardado = None
+		
+		self._cache_z = [texto] + (['']*25)
 	
 	def openFile(self, event=None):
 		
@@ -394,6 +435,7 @@ class Notepad:
 			
 			self.thisTextArea.insert(1.0, text)
 			self.guardado = self.thisTextArea.get(1.0,END)
+			self._cache_z = []
 		else:
 			self._file = None
 		
@@ -601,6 +643,7 @@ class Notepad:
 				self.b_unsave = False
 		
 		if self.c_csf == 0:
+			self.cache(event)
 			self.root.after(100, self.chkStatusFile)
 			self.c_csf += 1
 		else:
