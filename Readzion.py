@@ -1,12 +1,12 @@
 
 # By: LawlietJH
-# Readzion v1.1.9
+# Readzion v1.2.0
 # Python 3
 
 #=======================================================================
 
 __author__ ='LawlietJH'
-__version__='v1.1.9'
+__version__='v1.2.0'
 
 debbuger = False
 
@@ -99,6 +99,7 @@ class Notepad:
 	thisHeight = 400
 	
 	_cache_z = []
+	_cache_y = []
 	
 	#===================================================================
 	
@@ -253,9 +254,28 @@ class Notepad:
 			if val == texto and not self._cache_z == []:
 				val = self._cache_z.pop()
 			
+			self._cache_y.append(texto)
 			self.thisTextArea.delete(1.0, END)
 			self.thisTextArea.insert(1.0, val)
-	
+			
+			self.updateCurrentCursor()
+		
+	def c_ye(self, event=None):
+		
+		if not self._cache_y == []:
+			
+			texto = self.thisTextArea.get(1.0,END)[:-1]
+			val = self._cache_y.pop()
+			
+			if val == texto and not self._cache_y == []:
+				val = self._cache_y.pop()
+			
+			self._cache_z.append(texto)
+			self.thisTextArea.delete(1.0, END)
+			self.thisTextArea.insert(1.0, val)
+			
+			self.updateCurrentCursor()
+		
 	#===================================================================
 	#===================================================================
 	#===================================================================
@@ -323,6 +343,8 @@ class Notepad:
 		
 		self.thisTextArea.bind('<Control-z>', self.c_zeta)
 		self.thisTextArea.bind('<Control-Z>', self.c_zeta)
+		self.thisTextArea.bind('<Control-y>', self.c_ye)
+		self.thisTextArea.bind('<Control-Y>', self.c_ye)
 		
 		self.thisTextArea.bind('<Control-x>', self.cut_paste)
 		self.thisTextArea.bind('<Control-v>', self.cut_paste)
@@ -362,6 +384,7 @@ class Notepad:
 	# Menu > Archivo:
 	
 	def newFile(self, event=None):
+		self.chkStatusFile()
 		texto = self.thisTextArea.get(1.0,END)[:-1]
 		if self.b_unsave:
 			
@@ -398,13 +421,29 @@ class Notepad:
 			self._file = None
 			self.guardado = None
 		
+		self._cache_y = []
 		self._cache_z = [texto] + (['']*25)
 	
 	def openFile(self, event=None):
-		
-		text = ''
+		self.chkStatusFile()
 		self.root.wm_attributes('-topmost', False)
 		
+		if self.b_unsave:
+			
+			resp = ''
+			
+			if self._file:
+				resp = askyesno('Confirmar Guardar Cambios',
+					'Desea Guardar los Cambios en el Archivo '+\
+					os.path.basename(self._file))
+			else:
+				resp = askyesno('Confirmar Guardar Cambios',
+					'Desea Guardar el Archivo?')
+				
+			if resp:
+				self.saveFile()
+		
+		text = ''
 		f_name = ex.getFileName(title='Abrir Archivo Tipo ZioN',
 								file_types=[['Archivos ZioN','*.zion']])
 		
@@ -435,6 +474,7 @@ class Notepad:
 			
 			self.thisTextArea.insert(1.0, text)
 			self.guardado = self.thisTextArea.get(1.0,END)
+			self._cache_y = []
 			self._cache_z = []
 		else:
 			self._file = None
