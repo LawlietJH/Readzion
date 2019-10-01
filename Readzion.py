@@ -1,12 +1,12 @@
 
 # By: LawlietJH
-# Readzion v1.2.0
+# Readzion v1.2.1
 # Python 3
 
 #=======================================================================
 
 __author__ ='LawlietJH'
-__version__='v1.2.0'
+__version__='v1.2.1'
 
 debbuger = False
 
@@ -31,13 +31,16 @@ if not debbuger:
 # ~ try: import tkinter as tk
 # ~ except: import Tkinter as tk
 
-import win32clipboard as WCB					# pip install pywin32
-from tkinter import *
 from tkinter.messagebox import *
-from explorer import Explorer as ex				# Descragar De: github.com/LawlietJH/Explorer
-import base64
-import os
+from tkinter.ttk import Progressbar
+from tkinter import *
 
+from explorer import Explorer as ex				# Descragar De: github.com/LawlietJH/Explorer
+import win32clipboard as WCB					# pip install pywin32
+import threading
+import base64
+import time
+import os
 
 #encode = lambda data: base64.urlsafe_b64encode(data.encode())
 #decode = lambda data: base64.urlsafe_b64decode(data).decode()
@@ -88,8 +91,40 @@ class Notepad:
 			WCB.EmptyClipboard()
 			WCB.CloseClipboard()
 	
+	class CreateToolTip(object):
+		'''
+		create a tooltip for a given widget
+		'''
+		def __init__(self, widget, text='widget info'):
+			self.widget = widget
+			self.tw = None
+			self.text = text
+			self.widget.bind("<Enter>", self.enter)
+			self.widget.bind("<Leave>", self.close)
+		def enter(self, event=None):
+			# ~ x = y = 0
+			# ~ x, y, cx, cy = self.widget.bbox("insert")
+			# ~ print(x, y, cx, cy)
+			x = event.x_root 
+			y = event.y_root
+			# creates a toplevel window
+			self.tw = Toplevel(self.widget)
+			# Leaves only the label and removes the app window
+			self.tw.wm_overrideredirect(True)
+			self.tw.wm_attributes('-topmost', True)
+			self.tw.wm_geometry("+%d+%d" % (x, y))
+			label = Label(self.tw, text=self.text, justify='left',
+						   background='white', relief='solid', borderwidth=1,
+						   font=("times", "8", "normal"))
+			label.pack(ipadx=1)
+		def close(self, event=None):
+			if self.tw:
+				self.tw.destroy()
+	
 	# https://stackoverflow.com/questions/3221956/how-do-i-display-tooltips-in-tkinter
 	# https://stackoverflow.com/questions/55316791/how-can-i-add-a-tooltip-to-menu-item
+	# https://likegeeks.com/es/ejemplos-de-la-gui-de-python/
+	# https://www.daniweb.com/programming/software-development/code/484591/a-tooltip-class-for-tkinter
 	
 	#===================================================================
 	
@@ -97,6 +132,14 @@ class Notepad:
 	
 	# La ventana por encima de todo:
 	root.wm_attributes('-topmost', True)
+	# No se puede cambiar su tamaño: Ancho y Alto.
+	# ~ root.resizable(width=True, height=False)
+	
+	# Siempre en equina superior izquierda:
+	# ~ root.overrideredirect(True)
+	
+	# ~ root.lift()
+	# ~ root.wm_attributes('-transparentcolor', 'white')
 	
 	thisWidth = 600
 	thisHeight = 400
@@ -160,16 +203,28 @@ class Notepad:
 	guardado = None
 	modo_lectura = False
 	
+	progress = IntVar()
+	progress = 0
+	bar = None
+	
 	def __init__(self, **kwargs):
 		
-		try: self.root.wm_iconbitmap('Readzion.ico')
+		try:
+			self.root.wm_iconbitmap('Readzion.ico')
+			# ~ self.root.wm_iconphoto(True, tk.PhotoImage(file='Readzion.ico'))
 		except: pass
 		
-		# Tamano de ventana (Por defecto es de 300x300)
+		# Tamano de ventana (Por defecto es de 600x400)
 		try:
 			self.thisWidth = kwargs['width']
 			self.thisHeight = kwargs['height']
 		except KeyError: pass
+		
+		# ~ self.progressbar()
+		
+		# ~ bar = threading.Thread(target=self.progressbar)
+		# ~ bar.setName('StartProgressBar')
+		# ~ bar.start()
 		
 		# Titulo de la ventana:
 		self.root.title(self.title + self.unsave + self.script)
@@ -203,6 +258,9 @@ class Notepad:
 		self.thisScrollBarX.config(command=self.thisTextArea.xview)			# Scrollbar se ajustara automaticamente acorde al contenido
 		self.thisTextArea.config(yscrollcommand=self.thisScrollBarY.set,
 								xscrollcommand=self.thisScrollBarX.set)
+		
+		# ~ self.ttp = self.CreateToolTip(self.thisTextArea, 'mouse is over button 1')
+		# ~ self.ttp.close()
 		
 		# Menus: =======================================================
 		
@@ -239,6 +297,23 @@ class Notepad:
 	#===================================================================
 	#===================================================================
 	#===================================================================
+	
+	def progressbar(self):
+		
+		self.bp = Toplevel(self.root)
+		# ~ self.bp.title('Barra de Progreso')
+		# ~ self.bp.attributes("-toolwindow",-1)
+		self.bp.wm_attributes('-topmost', True)
+		self.bp.overrideredirect(1)
+		
+		left = int(self.root.winfo_screenwidth()/2 - 300)
+		top = int(self.root.winfo_screenheight()/2 - 200)
+		
+		self.bp.geometry('+{}+{}'.format(left, top))
+		
+		self.bar = Progressbar(self.bp, length=200, variable=self.progress)
+		self.bar.place(x=30, y=60)
+		self.bar.pack()
 	
 	def cache(self, event=None):
 		
@@ -305,6 +380,7 @@ class Notepad:
 		self.thisLineTextMenu = Menu(self.thisMenuBar, tearoff=0, bg=self.bg_menu, fg=self.fg_menu)
 		self.thisSubLineText = Menu(self.thisMenuBar, tearoff=0, bg=self.bg_menu, fg=self.fg_menu)
 		self.thisCipherMenu = Menu(self.thisMenuBar, tearoff=0, bg=self.bg_menu, fg=self.fg_menu)
+		# ~ self.thisCipherAESMenu = Menu(self.thisMenuBar, tearoff=0, bg=self.bg_menu, fg=self.fg_menu)
 		
 		# Archivo:
 		self.thisFileMenu.add_command(label='Nuevo', underline=0, accelerator='Ctrl+N', command=self.newFile)
@@ -333,6 +409,9 @@ class Notepad:
 		
 		# Cifrar:
 		self.thisCipherMenu.add_command(label='Base64', underline=0, command=self.setBase64)
+		# ~ self.thisCipherAESMenu.add_command(label='Encriptar', underline=0, command=self.AES256Encript)
+		# ~ self.thisCipherAESMenu.add_command(label='Desencriptar', underline=0, command=self.AES256Decript)
+		# ~ self.thisCipherMenu.add_cascade(label='AES 256', underline=0, menu=self.thisCipherAESMenu)
 		
 		# Activar Menu:
 		self.thisMenuBar.add_cascade(label='Archivo', underline=0, accelerator='Alt+A', menu=self.thisFileMenu)
@@ -408,6 +487,7 @@ class Notepad:
 		if self.b_unsave:
 			
 			resp = ''
+			
 			self.root.wm_attributes('-topmost', False)
 			
 			if self._file:
@@ -429,7 +509,7 @@ class Notepad:
 			self._file = None
 			self.guardado = None
 			
-			self.root.wm_attributes('-topmost', True)
+			self.root.wm_attributes('-topmost', self.encima_state)
 			
 		else:
 			self.root.title(self.original_title + self.unsave + self.script)
@@ -498,7 +578,7 @@ class Notepad:
 		else:
 			self._file = None
 		
-		self.root.wm_attributes('-topmost', True)
+		self.root.wm_attributes('-topmost', self.encima_state)
 		self.chkStatusFile()
 	
 	def saveFile(self, event=None):
@@ -548,7 +628,7 @@ class Notepad:
 			else:
 				self._file = None
 		
-		self.root.wm_attributes('-topmost', True)
+		self.root.wm_attributes('-topmost', self.encima_state)
 		self.chkStatusFile()
 	
 	def saveFileAs(self, event=None):
@@ -582,7 +662,7 @@ class Notepad:
 			self.b_unsave = False
 			self.guardado = self.thisTextArea.get(1.0,END)
 		
-		self.root.wm_attributes('-topmost', True)
+		self.root.wm_attributes('-topmost', self.encima_state)
 		self.chkStatusFile()
 	
 	def delFile(self, event=None):
@@ -598,7 +678,7 @@ class Notepad:
 				self.newFile()
 				self.habilitarEliminar()
 			
-			self.root.wm_attributes('-topmost', True)
+			self.root.wm_attributes('-topmost', self.encima_state)
 	
 	def cleanFile(self, event=None):
 		
@@ -614,7 +694,7 @@ class Notepad:
 				self.saveFile()
 				self.habilitarVaciar()
 			
-			self.root.wm_attributes('-topmost', True)
+			self.root.wm_attributes('-topmost', self.encima_state)
 	
 	#===================================================================
 	#===================================================================
@@ -696,11 +776,50 @@ class Notepad:
 				self.thisTextArea.delete(pos_i, pos_f)
 				self.thisTextArea.insert(pos_i, s_code)
 	
+	def AES256Decript(self):
+		
+		self.cache()
+		
+		# ~ cifrar = AES(password)
+		
+		s_code = ''
+		s_text = self.current_cursor[2]		# texto seleccionado.
+		if s_text != '':
+			
+			# ~ s_code = decrypted = cifrar.desencriptar(s_text)
+			
+			pos_i, pos_f = self.current_cursor[3:5]
+			
+			if pos_i != '':
+				self.thisTextArea.delete(pos_i, pos_f)
+				self.thisTextArea.insert(pos_i, s_code)
+		
+	def AES256Encript(self):
+		
+		self.cache()
+		
+		# ~ cifrar = AES(password)
+		
+		s_code = ''
+		s_text = self.current_cursor[2]		# texto seleccionado.
+		if s_text != '':
+			
+			# ~ s_code = encrypted = cifrar.encriptar(s_text)
+			
+			pos_i, pos_f = self.current_cursor[3:5]
+			
+			if pos_i != '':
+				self.thisTextArea.delete(pos_i, pos_f)
+				self.thisTextArea.insert(pos_i, s_code)
+		
 	#===================================================================
 	#===================================================================
 	#===================================================================
 	
 	def chkStatusFile(self, event=None):
+		
+		# ~ self.progress += 1
+		# ~ self.bar['value'] = self.progress
 		
 		if self._file and not file_exists(self._file):
 			self.root.title(self.title + self.unsave + self.script)
@@ -822,7 +941,7 @@ class Notepad:
 				Hide(False)
 				sys.exit()
 			else:
-				self.root.wm_attributes('-topmost', True)
+				self.root.wm_attributes('-topmost', self.encima_state)
 		else:
 			self.root.destroy()
 			Hide(False)

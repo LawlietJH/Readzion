@@ -2,7 +2,7 @@
 # Python 2 y 3
 # explorer.py
 # LawlietJH
-# v1.2.2
+# v1.2.3
 
 from tkinter import filedialog
 try: from Tkinter import Tk
@@ -10,8 +10,9 @@ except: from tkinter import Tk
 import os
 
 
-Tk().withdraw()
-
+root = Tk()
+root.withdraw()
+root.wm_attributes('-topmost', True)
 
 class Explorer():
 	
@@ -57,5 +58,4 @@ class Explorer():
 											  filetypes = file_types)
 		if not f_name == None:
 			return f_name
-
 
