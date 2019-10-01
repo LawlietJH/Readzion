@@ -88,6 +88,9 @@ class Notepad:
 			WCB.EmptyClipboard()
 			WCB.CloseClipboard()
 	
+	# https://stackoverflow.com/questions/3221956/how-do-i-display-tooltips-in-tkinter
+	# https://stackoverflow.com/questions/55316791/how-can-i-add-a-tooltip-to-menu-item
+	
 	#===================================================================
 	
 	root = Tk()
@@ -155,10 +158,11 @@ class Notepad:
 	save = ' - '
 	b_unsave = True
 	guardado = None
+	modo_lectura = False
 	
 	def __init__(self, **kwargs):
 		
-		try: self.root.wm_iconbitmap('Notepad.ico')
+		try: self.root.wm_iconbitmap('Readzion.ico')
 		except: pass
 		
 		# Tamano de ventana (Por defecto es de 300x300)
@@ -192,6 +196,7 @@ class Notepad:
 		
 		# Add controls (widget)
 		self.thisTextArea.grid(sticky = N + E + S + W)
+		self.thisTextArea.focus()
 		self.thisScrollBarY.pack(side=RIGHT, fill=Y)
 		self.thisScrollBarX.pack(side=BOTTOM, fill=X)
 		self.thisScrollBarY.config(command=self.thisTextArea.yview)			# Scrollbar se ajustara automaticamente acorde al contenido
@@ -212,9 +217,9 @@ class Notepad:
 		# Otros Eventos:
 		# ~ self.thisTextArea.bind('<Button-1>', self.updateCurrentCursor)
 		self.root.bind('<Button-3>', self.popup)
+		# ~ self.root.bind('<Motion>', self.chkpositions)
 		self.root.protocol('WM_DELETE_WINDOW', self.exit)
 		self.thisTextArea.bind('<Motion>', self.updateCurrentCursor)
-		
 		# Eventos del teclado:
 		self.bind_keys()
 		
@@ -224,7 +229,18 @@ class Notepad:
 		
 		# ~ self.root.after(10000, lambda: self.chkStatusFile())
 	
-	def cache(self, event):
+	
+	# ~ def chkpositions(self, event):
+		
+		# ~ print(self.root.winfo_x(), self.root.winfo_y())
+		# ~ print(event.x_root, event.y_root)
+		
+	
+	#===================================================================
+	#===================================================================
+	#===================================================================
+	
+	def cache(self, event=None):
 		
 		if event:
 			# ~ print(event.keysym)
@@ -241,6 +257,8 @@ class Notepad:
 		if not self._cache_z == []:
 			if not self._cache_z[-1] == texto:
 				self._cache_z.append(texto)
+				# ~ print(self._cache_y)
+				self._cache_y = []
 		else:
 			self._cache_z.append(texto)
 	
@@ -303,6 +321,7 @@ class Notepad:
 		self.thisEnableMenu.add_checkbutton(label='Siempre Encima', underline=0, command=self.encimar)
 		self.thisEnableMenu.add_checkbutton(label='Eliminar', underline=0, command=self.habilitarEliminar)
 		self.thisEnableMenu.add_checkbutton(label='Vaciar', underline=0, command=self.habilitarVaciar)
+		self.thisEnableMenu.add_checkbutton(label='Modo Lectura', underline=0, command=self.modoLectura)
 		self.thisEnableMenu.invoke(0)
 		
 		# Formato:
@@ -632,13 +651,26 @@ class Notepad:
 		self.popUpF.entryconfig(index='Vaciar Archivo', state='active' if self.vaciar_state else 'disabled')
 		self.thisFileMenu.entryconfig(index='Vaciar Archivo', state='active' if self.vaciar_state else 'disabled')
 	
+	def modoLectura(self, event=None):
+		
+		if self.modo_lectura:
+			self.thisTextArea.config(state='normal')
+			self.modo_lectura = False
+		else:
+			self.thisTextArea.config(state='disable')
+			self.modo_lectura = True
+	
 	#===================================================================
 	#===================================================================
 	#===================================================================
 	
 	# Menu > Cifrado:
 	
-	def setBase64(self):
+	def setBase64(self):	# Cifra el texto seleccionado.
+		
+		# chache() permite hacer Ctrl+Z a un texto cifrado y recuperar texto.
+		# Y Posteriormente tambien permite el uso de Ctrl+Y.
+		self.cache()
 		
 		xD = True
 		s_code = ''
